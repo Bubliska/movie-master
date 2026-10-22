@@ -3,7 +3,16 @@
 A free, offline screenplay editor for DOS, Windows and Apple Silicon Mac.
 This repository contains the application source and its English landing page.
 
-[Website](https://moviemaster.app) · [Download the app](https://github.com/Bubliska/movie-master/releases/latest)
+[Website](https://www.moviemaster.app/) · [All releases](https://github.com/Bubliska/movie-master/releases)
+
+## Download Movie Master
+
+| Platform | Download |
+| --- | --- |
+| Mac · Apple Silicon | [Movie Master v0.4.4 · DMG](https://github.com/Bubliska/movie-master/releases/download/v0.4.4/Movie-Master-0.4.4-AppleSilicon.dmg) |
+| DOS & Windows · 32/64-bit | [Movie Master v0.4.4 · ZIP](https://github.com/Bubliska/movie-master/releases/download/v0.4.4/Movie-Master-0.4.4-DOS-Windows.zip) |
+
+Mac requires macOS 15 or later. This beta is not Apple-notarized; see the [Mac installation instructions](https://www.moviemaster.app/credits.html#mac-install). Extract the entire DOS/Windows ZIP before running the app.
 
 ## Writing
 
