@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "mkdir -p public && cp index.html credits.html style.css app.js mark.svg movie-master-dune.png public/",
+  "installCommand": "",
+  "outputDirectory": "public"
+}

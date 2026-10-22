@@ -1,0 +1,16 @@
+.DS_Store
+.vercel/
+build/
+*.dSYM/
+__pycache__/
+*.CFG
+*.SEN
+*.BAK
+*.TMP
+*.OLD
+public/
+WRITER.EXE
+hosttest
+browser-test
+*.PDF
+*.FTN

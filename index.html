@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#fafafa">
+  <title>Movie Master. Make room for the story.</title>
+  <meta name="description" content="A quiet screen for your next screenplay. Free, offline screenwriting for Mac, DOS and Windows. Turkish F keyboard, Fountain import and Courier Prime PDF.">
+  <meta property="og:title" content="Movie Master. Make room for the story.">
+  <meta property="og:description" content="A quiet screen for your next screenplay. Free for Mac, DOS and Windows.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="nav shell">
+    <a class="brand" href="#" aria-label="Movie Master home">Movie Master<span class="brand-dot" aria-hidden="true">.</span></a>
+    <nav aria-label="Main navigation"><a href="https://github.com/Bubliska/movie-master" target="_blank" rel="noopener noreferrer">Source code <span aria-hidden="true">↗</span></a><a href="#idea">The idea</a><a href="#downloads" class="nav-download">Download <span aria-hidden="true">↓</span></a></nav>
+  </header>
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy shell">
+        <p class="eyebrow">THE SPACE TO WRITE.</p>
+        <h1 id="hero-title">Make room<br>for the story.</h1>
+        <p class="hero-subtitle">A quiet screen for your next screenplay.</p>
+        <div class="download-actions" id="downloads"><a class="button primary" id="download-mac" href="https://github.com/Bubliska/movie-master/releases/download/v0.4.3/Movie-Master-0.4.3-AppleSilicon.dmg">Download for Mac <span aria-hidden="true">↓</span></a><a class="secondary" href="https://github.com/Bubliska/movie-master/releases/download/v0.4.3/Movie-Master-0.4.3-DOS-Windows.zip" download>DOS & Windows <span aria-hidden="true">↗</span></a></div>
+        <p class="compatibility">Free. Offline. Yours. <span aria-hidden="true">·</span> v0.4.3 beta</p>
+        <p class="download-status">Apple Silicon · macOS 15 or later</p>
+      </div>
+      <figure class="product-stage shell">
+        <div class="app-capture"><img src="movie-master-dune.png" width="720" height="400" alt="Actual Movie Master app screenshot showing an original Arrakis scene with Paul and Chani, the real DOS menus and function keys."></div>
+        <figcaption>Captured from the app. <span>An original scene set on Arrakis.</span></figcaption>
+      </figure>
+    </section>
+    <section class="essentials shell" aria-label="The essentials"><div><h2>Six elements.<br>One rhythm.</h2><p>Everything a screenplay needs.<br>Just a keystroke away.</p></div><div><h2>Fountain in.<br>Beautiful PDF out.</h2><p>Bring your draft. Export in Courier Prime.<br>Keep moving.</p></div><div><h2>Your words.<br>Your computer.</h2><p>Write offline. Choose where you save.<br>Turkish F keyboard. Locked scene numbers.</p></div></section>
+    <section class="idea shell" id="idea" aria-labelledby="idea-title">
+      <a class="roth-image" href="https://www.youtube.com/watch?v=N3_QmiNs52o" target="_blank" rel="noopener noreferrer" aria-label="Watch Eric Roth's writing process on Academy Originals"><img src="https://i.ytimg.com/vi/N3_QmiNs52o/maxresdefault.jpg" width="1280" height="720" alt="Eric Roth at his writing desk, from Academy Originals" loading="lazy" referrerpolicy="no-referrer"><span aria-hidden="true">↗</span></a>
+      <div class="idea-copy"><p class="eyebrow">A FAMILIAR IDEA.</p><h2 id="idea-title">Great stories.<br>Simple tools.</h2><p>In a 2020 conversation, Eric Roth described writing in an old DOS copy of Movie Master. One computer, devoted to the work. That kind of focus is the idea behind this independent app.</p><a class="story-link" href="https://johnaugust.com/2020/scriptnotes-475-the-one-with-eric-roth-transcript" target="_blank" rel="noopener noreferrer">Read the conversation <span aria-hidden="true">↗</span></a></div>
+    </section>
+    <section class="support shell" aria-labelledby="support-title"><div><p class="eyebrow">FREE FOR EVERYONE.</p><h2 id="support-title">A little support.<br>A lot of possibility.</h2></div><div class="support-action"><button type="button" class="button donate" id="donate-button">Donate <span aria-hidden="true">↗</span></button><p>Always optional. Opening soon.</p></div></section>
+  </main>
+  <footer class="footer shell"><span>© 2026 Movie Master</span><div><button class="footer-link" type="button" id="requirements-button">Compatibility</button><a href="credits.html">Credits & notes</a><a href="https://github.com/Bubliska/movie-master/releases/download/v0.4.3/SHA256.txt" target="_blank" rel="noopener">Verify downloads <span aria-hidden="true">↗</span></a></div><span>Made for the page.</span></footer>
+  <dialog id="donation-dialog" aria-labelledby="donation-title"><button class="dialog-close" aria-label="Close donation information" type="button">×</button><p class="eyebrow">THANK YOU.</p><h2 id="donation-title">The next chapter.<br>Coming soon.</h2><p>Donations aren't open yet. Once a payment provider is chosen, you'll be able to support Movie Master here. The app is already yours to use, for free.</p><button class="button primary dialog-dismiss" type="button">Back to the story</button></dialog>
+  <dialog id="requirements-dialog" aria-labelledby="requirements-title"><button class="dialog-close" aria-label="Close compatibility information" type="button">×</button><p class="eyebrow">VERSION 0.4.3 · BETA</p><h2 id="requirements-title">A few details.</h2><h3>Mac</h3><p>Apple Silicon, macOS 15 or later. DOSBox-X is included. Open the DMG and drag the app to Applications. This personal beta is ad-hoc signed and isn't Apple-notarized. No Intel Mac build is included.</p><h3>DOS & Windows</h3><p>The ZIP includes DOS, WIN32 and WIN64 builds. Windows 10–11: extract the entire ZIP and run BASLAT.BAT. DOS: 386+, VGA and extended memory; 32 MB recommended. Keep FONT.TTF and CWSDPMI.EXE beside WRITER.EXE. Windows builds are compiled but haven't been tested on a live Windows machine.</p><p class="dialog-small">First Save: F10 → choose a folder → F5 Save Here → enter a name. Save As and every export let you choose a location again.</p><button class="button primary dialog-dismiss" type="button">Got it</button></dialog>
+  <noscript><p class="noscript shell">Both downloads work without JavaScript. Enable it to open the information dialogs.</p></noscript>
+</body>
+</html>
