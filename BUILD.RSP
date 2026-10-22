@@ -1,1 +1,1 @@
--std=gnu99 -O2 -Wall -Wextra -Werror core.c scenes.c pdf.c files.c fountain.c screen.c main.c tests.c -o WRITER.EXE
+-std=gnu99 -O2 -Wall -Wextra -Werror core.c keyboard.c scenes.c pdf.c files.c fountain.c screen.c main.c tests.c -o MOVIEMST.EXE

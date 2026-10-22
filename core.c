@@ -1,4 +1,4 @@
-#include "writer.h"
+#include "moviemst.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -69,8 +69,8 @@ int backspace(State *s,int forward){
     p=s->d.p+s->cur.p;n=(int)strlen(p->text);if(n+strlen(p[1].text)>MAX_TEXT){if(!forward){s->cur.p++;s->cur.o=0;}return 0;}
     joined=mem(n+strlen(p[1].text)+1);strcpy(joined,p->text);strcat(joined,p[1].text);free(p->text);p->text=joined;doc_remove(&s->d,s->cur.p+1);return 1;
 }
-int upper857(int c){if(c>='a'&&c<='z')return c=='i'?152:c-32;switch(c){case 135:return 128;case 167:return 166;case 141:return 'I';case 148:return 153;case 159:return 158;case 129:return 154;}return c;}
-int lower857(int c){if(c>='A'&&c<='Z')return c=='I'?141:c+32;switch(c){case 128:return 135;case 166:return 167;case 152:return 'i';case 153:return 148;case 158:return 159;case 154:return 129;}return c;}
+int upper857(int c){return letter_case(c,1);}
+int lower857(int c){return letter_case(c,0);}
 /* Capitals are element formatting; keep the writer's original spelling. */
 int element_char(int type,int c){return type==SCENE||type==CHARACTER||type==TRANSITION?upper857(c):c;}
 const char *element_find(int type,const char *text,const char *needle){
@@ -102,18 +102,6 @@ int utf8_decode(const char *in,char *out,size_t cap){
     }out[n]=0;return 1;
 }
 char *utf8_encode(const char *in){char *out=mem(strlen(in)*3+1),*p=out;while(*in){unsigned int c=unicode857[(unsigned char)*in++];if(c<128)*p++=(char)c;else if(c<2048){*p++=(char)(192|(c>>6));*p++=(char)(128|(c&63));}else{*p++=(char)(224|(c>>12));*p++=(char)(128|((c>>6)&63));*p++=(char)(128|(c&63));}}return out;}
-int f_key(int scan,int shift,int caps){
-    static const unsigned char top[]={'f','g',167,141,'o','d','r','n','h','p','q','w'};
-    static const unsigned char mid[]={'u','i','e','a',129,'t','k','m','l','y',159};
-    static const unsigned char bot[]={'j',148,'v','c',135,'z','s','b','.',','};
-    static const char nums[]="1234567890",syms[]="!\"^$%&'()=";
-    int c=0;if(scan>=0x10&&scan<=0x1b)c=top[scan-0x10];else if(scan>=0x1e&&scan<=0x28)c=mid[scan-0x1e];else if(scan>=0x2c&&scan<=0x35)c=bot[scan-0x2c];
-    else if(scan>=2&&scan<=11)return shift?syms[scan-2]:nums[scan-2];else if(scan==12)return shift?'?':'/';else if(scan==13)return shift?'_':'-';else if(scan==0x2b)c='x';else if(scan==0x29)return shift?'*':'+';else if(scan==0x39)return ' ';else if(scan==0x56)return shift?'>':'<';
-    if((c>='a'&&c<='z')||c>=128)return shift!=caps?upper857(c):c;
-    if(shift&&scan==0x34)return ':';
-    if(shift&&scan==0x35)return ';';
-    return c;
-}
 unsigned long doc_hash(const Doc *d){uint32_t h=2166136261u;int i;const unsigned char *p;for(i=-2;i<d->n;i++){p=(const unsigned char*)(i==-2?d->title:i==-1?d->author:d->p[i].text);if(i>=0)h=(h^(d->p[i].type+1))*16777619u;while(*p)h=(h^*p++)*16777619u;h=(h^255)*16777619u;}
     h=(h^d->numbering)*16777619u;h=(h^d->locked)*16777619u;
     for(i=0;i<d->nn;i++){h=(h^d->numbers[i].base)*16777619u;h=(h^d->numbers[i].suffix)*16777619u;}
@@ -124,7 +112,7 @@ unsigned long doc_hash(const Doc *d){uint32_t h=2166136261u;int i;const unsigned
 static int write_field(FILE *f,const char *text){char *u=utf8_encode(text),*p=u;int ok=1;while(*p&&ok){if(*p=='\\')ok=fputs("\\\\",f)>=0;else ok=fputc(*p,f)!=EOF;p++;}free(u);return ok&&fputc('\n',f)!=EOF;}
 static int write_native(const Doc *d,FILE *f){
     int i,v2=d->numbering||d->locked||d->nn;
-    if(fprintf(f,"WRITER %d\nT\t",v2?2:1)<0||!write_field(f,d->title)||fputs("Y\t",f)<0||!write_field(f,d->author))return 0;
+    if(fprintf(f,"MOVIEMASTER %d\nT\t",v2?2:1)<0||!write_field(f,d->title)||fputs("Y\t",f)<0||!write_field(f,d->author))return 0;
     if(v2){
         if(fprintf(f,"N\t%d\t%d\t%d\n",d->numbering,d->locked,d->nn)<0)return 0;
         for(i=0;i<d->nn;i++)if(fprintf(f,"S\t%d\t%d\n",d->numbers[i].base,d->numbers[i].suffix)<0)return 0;
@@ -167,7 +155,7 @@ int load_doc(Doc *d,const char *path,char *error){
     while(fgets(line,MAX_TEXT*4+64,f)){
         size_t n=strlen(line),i=2,j=0;int id=0;const char *cursor=line+2;
         if(!n||line[n-1]!='\n'){ok=0;break;}line[--n]=0;if(n&&line[n-1]=='\r')line[--n]=0;
-        if(count++==0){v2=!strcmp(line,"WRITER 2");if(!v2&&strcmp(line,"WRITER 1")){ok=0;break;}continue;}
+        if(count++==0){v2=!strcmp(line,"MOVIEMASTER 2")||!strcmp(line,"WRITER 2");if(!v2&&strcmp(line,"MOVIEMASTER 1")&&strcmp(line,"WRITER 1")){ok=0;break;}continue;}
         if(n<2||line[1]!='\t'){ok=0;break;}
         if(v2&&count==4){
             if(line[0]!='N'||!native_int(&cursor,&show,'\t',1)||!native_int(&cursor,&locked,'\t',1)||!native_int(&cursor,&expected,0,MAX_SCENE_LABELS)||(!locked&&expected)){ok=0;break;}

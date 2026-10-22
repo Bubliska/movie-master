@@ -7,7 +7,7 @@ This repository contains the application source and its English landing page.
 
 ## Writing
 
-Six screenplay elements, Turkish F or system keyboard, undo/redo, scene list,
+Six screenplay elements, selectable keyboard layouts, undo/redo, scene list,
 scene move/duplicate, Fountain import, and PDF/TXT/Fountain export. PDF embeds
 Courier Prime. The DOS interface is monochrome, with a steady software cursor.
 The scene list opens from the menu rather than occupying the writing screen.
@@ -15,10 +15,24 @@ The scene list opens from the menu rather than occupying the writing screen.
 - F1 Slugline, F2 Action, F3 Character, F4 Parenthetical, F5 Dialog, F6 Transition.
 - Tab cycles elements or completes a repeated cue. Ctrl+Enter adds an element.
 - F9/Esc opens menus. F10/Ctrl+S saves. Alt+H opens help.
-- First Save, Save As, import and every export open the in-app folder browser.
+- First Save, Save As and every export open the in-app folder browser.
   It starts at Desktop. Enter opens folders; F5 saves here; F3 accepts a path.
-- Windows: extract the portable ZIP and run BASLAT.BAT. DOS: run WRITER.EXE with
+- Mac Fountain import uses the native macOS file chooser, starting at Desktop.
+  It supports Unicode filenames, including decomposed Turkish names hidden by
+  DOSBox. A private temporary copy is read; the original is unchanged. DOS and
+  Windows import use the in-app browser.
+- Windows: extract the portable ZIP and run START.BAT. DOS: run MOVIEMST.EXE with
   CWSDPMI.EXE and FONT.TTF alongside it. Mac: drag Movie Master.app to Applications.
+
+## Keyboard layouts — v0.4.4
+
+Settings selects System, US, UK, Dvorak, Turkish Q/F, Spanish, French AZERTY,
+German QWERTZ, Italian, Portuguese or Brazilian Portuguese. The selection is
+saved. National layouts use PC scan codes; AltGr is Right Alt (Right Option
+on Mac). Dead accents compose supported Latin letters. US/UK case uses I/i;
+Turkish layouts preserve İ/i and I/ı. Existing 0/1 keyboard settings migrate.
+The current 8-bit text set supports Latin text; Cyrillic, Arabic, CJK and
+some symbols such as the euro sign are not supported in this release.
 
 ## Scene numbers — v0.4.3
 
@@ -35,8 +49,9 @@ already revised group uses its next unused suffix, without renaming old scenes.
 **Unlock and Renumber** asks for confirmation and restores 1, 2, 3… in document
 order. Hiding numbers does not unlock them. The list still displays labels.
 
-Numbered SEN documents use **WRITER 2** format; unnumbered documents keep
-WRITER 1. This version opens both. Older app versions cannot open WRITER 2.
+New SEN documents use **MOVIEMASTER 1/2** headers. The app still opens legacy
+SEN files and preserves their scene numbers. Older app versions cannot open
+files written with the new header.
 Fountain `#11A#` labels import as locked numbers. Fountain carries visible
 labels, not the registry of deleted numbers; use SEN to preserve that registry.
 Duplicate/invalid imported labels cancel import while preserving the open draft.
@@ -51,10 +66,10 @@ Native regression tests (Clang, macOS/Linux):
 
 ```sh
 mkdir -p build/test build/browser
-clang -std=c99 -g -O1 -Wall -Wextra -Werror -fsanitize=address,undefined core.c scenes.c pdf.c files.c fountain.c screen.c main.c tests.c -o build/hosttest
+clang -std=c99 -g -O1 -Wall -Wextra -Werror -fsanitize=address,undefined core.c keyboard.c scenes.c pdf.c files.c fountain.c screen.c main.c tests.c -o build/hosttest
 cp FONT.TTF build/test/
 (cd build/test && ../hosttest /TEST)
-clang -std=c99 -g -O1 -Wall -Wextra -Werror -fsanitize=address,undefined core.c scenes.c pdf.c files.c fountain.c tests.c browser_test.c -o build/browser-test
+clang -std=c99 -g -O1 -Wall -Wextra -Werror -fsanitize=address,undefined core.c keyboard.c scenes.c pdf.c files.c fountain.c tests.c browser_test.c -o build/browser-test
 cp FONT.TTF build/browser/
 (cd build/browser && ../browser-test)
 ```
@@ -70,14 +85,15 @@ DOS: install DJGPP 2.05/GCC 9.3 and CWSDPMI, set DJGPP and PATH, then run
 Windows (Zig 0.14.1; replace x86_64 with x86 for 32-bit):
 
 ```sh
-zig cc -target x86_64-windows-gnu -std=c99 -O2 -s -Wall -Wextra -Werror core.c scenes.c pdf.c files.c fountain.c screen.c main.c tests.c -luser32 -lshell32 -o WRITER.EXE
+zig cc -target x86_64-windows-gnu -std=c99 -O2 -s -Wall -Wextra -Werror core.c keyboard.c scenes.c pdf.c files.c fountain.c screen.c main.c tests.c -luser32 -lshell32 -o MOVIEMST.EXE
 ```
 
 Mac: see `python3 build_mac.py --help`. Supply a portable release directory
 containing DOS/, SRC/ and LICENSES/, and the official DOSBox-X SDL2 ARM64 .app.
-The wrapper preserves private Application Support/WRITER session storage and
-opens file locations inside the editor. Its public app name is Movie Master;
-WRITER remains the internal executable/file-format identifier.
+The wrapper keeps private sessions in Application Support/MovieMaster.
+On the first upgrade, it moves the previous settings/session folder without
+changing its contents; a running previous app must be closed first. The DOS
+executable is MOVIEMST.EXE to fit DOS 8.3 filenames.
 
 ## Website and deployment
 

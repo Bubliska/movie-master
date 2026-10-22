@@ -1,4 +1,4 @@
-#include "writer.h"
+#include "moviemst.h"
 #include "screen.h"
 #include <string.h>
 #include <stdlib.h>
@@ -33,11 +33,12 @@ static int special(int scan,int ascii){
 #include <windows.h>
 static HANDLE hin,hout;static DWORD inmode,outmode;static CONSOLE_CURSOR_INFO oldcursor;static CONSOLE_SCREEN_BUFFER_INFO oldinfo;
 static DWORD clipboard_sequence;
-void screen_init(void){COORD size={80,25};SMALL_RECT rect={0,0,79,24};CONSOLE_CURSOR_INFO ci={20,FALSE};hin=GetStdHandle(STD_INPUT_HANDLE);hout=GetStdHandle(STD_OUTPUT_HANDLE);GetConsoleMode(hin,&inmode);GetConsoleMode(hout,&outmode);GetConsoleCursorInfo(hout,&oldcursor);GetConsoleScreenBufferInfo(hout,&oldinfo);SetConsoleMode(hin,ENABLE_EXTENDED_FLAGS|ENABLE_WINDOW_INPUT);SetConsoleWindowInfo(hout,TRUE,&rect);SetConsoleScreenBufferSize(hout,size);SetConsoleCursorInfo(hout,&ci);SetConsoleTitleW(L"WRITER - Screenplay");}
+void screen_init(void){COORD size={80,25};SMALL_RECT rect={0,0,79,24};CONSOLE_CURSOR_INFO ci={20,FALSE};hin=GetStdHandle(STD_INPUT_HANDLE);hout=GetStdHandle(STD_OUTPUT_HANDLE);GetConsoleMode(hin,&inmode);GetConsoleMode(hout,&outmode);GetConsoleCursorInfo(hout,&oldcursor);GetConsoleScreenBufferInfo(hout,&oldinfo);SetConsoleMode(hin,ENABLE_EXTENDED_FLAGS|ENABLE_WINDOW_INPUT);SetConsoleWindowInfo(hout,TRUE,&rect);SetConsoleScreenBufferSize(hout,size);SetConsoleCursorInfo(hout,&ci);SetConsoleTitleW(L"Movie Master - Screenplay");}
 void screen_done(void){SetConsoleMode(hin,inmode);SetConsoleMode(hout,outmode);SetConsoleTextAttribute(hout,oldinfo.wAttributes);SetConsoleCursorInfo(hout,&oldcursor);SetConsoleCursorPosition(hout,(COORD){0,24});}
 void screen_flush(int x,int y){CHAR_INFO out[2000];SMALL_RECT rect={0,0,79,24};const unsigned char *frame=cursor_frame(x,y);int i;for(i=0;i<2000;i++){out[i].Char.UnicodeChar=unicode857[frame[i*2]];out[i].Attributes=frame[i*2+1];}WriteConsoleOutputW(hout,out,(COORD){80,25},(COORD){0,0},&rect);}
-Key key_read(int f_layout,int wait){Key k={0};INPUT_RECORD ev;DWORD count;for(;;){KEY_EVENT_RECORD *e;int scan,ascii,cap;if(!wait){GetNumberOfConsoleInputEvents(hin,&count);if(!count)return k;}if(!ReadConsoleInputW(hin,&ev,1,&count))return k;if(ev.EventType!=KEY_EVENT||!ev.Event.KeyEvent.bKeyDown)continue;e=&ev.Event.KeyEvent;scan=e->wVirtualScanCode;ascii=e->uChar.UnicodeChar;k.shift=(e->dwControlKeyState&SHIFT_PRESSED)!=0;k.ctrl=(e->dwControlKeyState&(LEFT_CTRL_PRESSED|RIGHT_CTRL_PRESSED))!=0;k.alt=(e->dwControlKeyState&(LEFT_ALT_PRESSED|RIGHT_ALT_PRESSED))!=0;cap=(e->dwControlKeyState&CAPSLOCK_ON)!=0;k.code=special(scan,ascii);if(k.code!=K_CHAR)return k;
-        if(f_layout)k.ch=f_key(scan,k.shift,cap);else{k.ch=from_unicode(ascii);if(k.ctrl&&ascii>=1&&ascii<=26)k.ch=ascii+'a'-1;}
+Key key_read(int f_layout,int wait){Key k={0};INPUT_RECORD ev;DWORD count;int pending=keyboard_pending();if(pending){k.code=K_CHAR;k.ch=pending;return k;}for(;;){KEY_EVENT_RECORD *e;int scan,ascii,cap,altgr;if(!wait){GetNumberOfConsoleInputEvents(hin,&count);if(!count)return k;}if(!ReadConsoleInputW(hin,&ev,1,&count))return k;if(ev.EventType!=KEY_EVENT||!ev.Event.KeyEvent.bKeyDown)continue;e=&ev.Event.KeyEvent;scan=e->wVirtualScanCode;ascii=e->uChar.UnicodeChar;k.shift=(e->dwControlKeyState&SHIFT_PRESSED)!=0;k.ctrl=(e->dwControlKeyState&(LEFT_CTRL_PRESSED|RIGHT_CTRL_PRESSED))!=0;k.alt=(e->dwControlKeyState&(LEFT_ALT_PRESSED|RIGHT_ALT_PRESSED))!=0;cap=(e->dwControlKeyState&CAPSLOCK_ON)!=0;altgr=(e->dwControlKeyState&RIGHT_ALT_PRESSED)!=0;if(altgr)k.ctrl=k.alt=0;k.code=special(scan,ascii);if(k.code!=K_CHAR){keyboard_reset();return k;}
+        if(k.ctrl||k.alt)keyboard_reset();
+        if(f_layout)k.ch=keyboard_key(f_layout,scan,k.shift,cap,altgr,!k.ctrl&&!k.alt);else{k.ch=from_unicode(ascii);if(k.ctrl&&ascii>=1&&ascii<=26)k.ch=ascii+'a'-1;}
         if(k.ch>0)return k;
     }}
 void idle(void){Sleep(15);}
@@ -85,15 +86,16 @@ void screen_init(void){struct text_info info;gettextinfo(&info);oldmode=info.cur
 void screen_done(void){if(fontseg>=0){loadfont(oldfont);__dpmi_free_dos_memory(fontsel);}textmode(oldmode);clrscr();}
 void screen_flush(int x,int y){puttext(1,1,80,25,(void*)cursor_frame(x,y));}
 Key key_read(int f_layout,int wait){
-    Key k={0};int raw,scan,ascii,mods,caps;
+    Key k={0};int raw,scan,ascii,mods,caps,altgr,pending=keyboard_pending();
+    if(pending){k.code=K_CHAR;k.ch=pending;return k;}
     if(!wait&&!bioskey(1))return k;
-    raw=bioskey(0);mods=bioskey(2);scan=(raw>>8)&255;ascii=raw&255;caps=(mods&64)!=0;
-    k.shift=(mods&3)!=0;k.ctrl=(mods&4)!=0;k.alt=(mods&8)!=0;k.code=special(scan,ascii);
+    raw=bioskey(0);mods=bioskey(0x12);scan=(raw>>8)&255;ascii=raw&255;caps=(mods&64)!=0;
+    k.shift=(mods&3)!=0;k.ctrl=(mods&4)!=0;k.alt=(mods&8)!=0;altgr=(mods&0x800)!=0;if(altgr)k.ctrl=k.alt=0;k.code=special(scan,ascii);if(k.code!=K_CHAR)keyboard_reset();
     /* BIOS buffers ASCII with the scan code, but shift status is live. Recover
        released modifiers from that ASCII so rapid input keeps Ctrl and case. */
     if(k.code==K_CHAR){
-        if(ascii>=1&&ascii<=26)k.ctrl=1;
-        if(!k.ctrl){
+        if(!altgr&&ascii>=1&&ascii<=26)k.ctrl=1;
+        if(!k.ctrl&&!altgr){
             if(ascii>='a'&&ascii<='z')k.shift=caps;
             else if(ascii>='A'&&ascii<='Z')k.shift=!caps;
             else if(upper857(ascii)!=ascii)k.shift=caps;
@@ -108,11 +110,12 @@ Key key_read(int f_layout,int wait){
                 else if(scan==53&&(ascii=='/'||ascii=='?'))k.shift=ascii=='?';
             }
             if(f_layout){
-                int plain=f_key(scan,0,caps),shifted=f_key(scan,1,caps);
+                int plain=keyboard_key(f_layout,scan,0,caps,0,0),shifted=keyboard_key(f_layout,scan,1,caps,0,0);
                 if(plain!=shifted){if(ascii==plain)k.shift=0;else if(ascii==shifted)k.shift=1;}
             }
         }
-        if(f_layout)k.ch=f_key(scan,k.shift,caps);
+        if(k.ctrl||k.alt)keyboard_reset();
+        if(f_layout)k.ch=keyboard_key(f_layout,scan,k.shift,caps,altgr,!k.ctrl&&!k.alt);
         else{k.ch=ascii;if(k.ctrl&&ascii>=1&&ascii<=26)k.ch=ascii+'a'-1;}
     }
     if(k.code==K_TAB)k.shift=ascii==0;

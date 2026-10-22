@@ -1,4 +1,4 @@
-#include "writer.h"
+#include "moviemst.h"
 #include "fontdata.h"
 #include <stdlib.h>
 #include <string.h>
@@ -23,7 +23,7 @@ int export_pdf(const Doc *d,const char *path,const char *font,char *error){
     OBJECT(7);fprintf(f,"<< /Length %ld /Length1 %ld >>\nstream\n",fontlen,fontlen);{size_t n;while((n=fread(buffer,1,sizeof(buffer),ttf))>0)if(fwrite(buffer,1,n,f)!=n)ok=0;if(ferror(ttf))ok=0;}fclose(ttf);fputs("\nendstream\nendobj\n",f);
     /* Stream lengths use indirect objects only for page content; the CMap is staged in a portable temp stream. */
     {FILE *map=tmpfile();long len;if(!map){ok=0;}else{
-        fputs("/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n/CMapName /Writer857 def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <00FF>\nendcodespacerange\n",map);
+        fputs("/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n/CMapName /MovieMaster857 def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <00FF>\nendcodespacerange\n",map);
         for(p=0;p<256;p+=64){fprintf(map,"64 beginbfchar\n");for(i=p;i<p+64;i++)fprintf(map,"<%04X> <%04X>\n",i,unicode857[i]);fputs("endbfchar\n",map);}fputs("endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n",map);
         len=ftell(map);rewind(map);OBJECT(8);fprintf(f,"<< /Length %ld >>\nstream\n",len);{size_t n;while((n=fread(buffer,1,sizeof(buffer),map))>0)fwrite(buffer,1,n,f);}fclose(map);fputs("endstream\nendobj\n",f);
     }}

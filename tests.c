@@ -1,4 +1,4 @@
-#include "writer.h"
+#include "moviemst.h"
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -132,12 +132,41 @@ static void fountain_tests(void){
     assert(import_fountain(&d,"Türkçe Çağrı.fountain",error,&warnings));doc_free(&d);assert(file_remove("Türkçe Çağrı.fountain")==0);
 #endif
 }
+static int mapped(int layout,int scan,int shift,int caps,int altgr,int compose){keyboard_layout=layout;return keyboard_key(layout,scan,shift,caps,altgr,compose);}
+static void keyboard_tests(void){
+    keyboard_reset();
+    assert(mapped(KEY_US,16,0,0,0,1)=='q'&&mapped(KEY_US,23,1,0,0,1)=='I');
+    assert(mapped(KEY_US,23,0,1,0,1)=='I'&&mapped(KEY_US,23,1,1,0,1)=='i');
+    assert(mapped(KEY_UK,4,1,0,0,1)==from_unicode(0xa3)&&mapped(KEY_UK,40,1,0,0,1)=='@');
+    assert(mapped(KEY_DVORAK,16,0,0,0,1)=='\''&&mapped(KEY_DVORAK,17,0,0,0,1)==',');
+    assert(mapped(KEY_TR_Q,23,0,0,0,1)==141&&mapped(KEY_TR_Q,40,1,0,0,1)==152);
+    assert(mapped(KEY_TR_F,16,0,0,0,1)=='f'&&mapped(KEY_TR_F,31,1,0,0,1)==152);
+    assert(mapped(KEY_ES,39,0,0,0,1)==from_unicode(0xf1));
+    assert(mapped(KEY_ES,40,0,0,0,1)==0);
+    /* Modifier probing must not discard a pending accent. */
+    assert(mapped(KEY_ES,30,0,0,0,0)=='a');
+    assert(mapped(KEY_ES,30,0,0,0,1)==from_unicode(0xe1));
+    assert(mapped(KEY_ES,3,0,0,1,1)=='@');
+    assert(mapped(KEY_FR,16,0,0,0,1)=='a'&&mapped(KEY_FR,30,0,0,0,1)=='q');
+    assert(mapped(KEY_FR,3,0,0,0,1)==from_unicode(0xe9));
+    assert(mapped(KEY_FR,26,0,0,0,1)==0&&mapped(KEY_FR,18,0,0,0,1)==from_unicode(0xea));
+    assert(mapped(KEY_DE,21,0,0,0,1)=='z'&&mapped(KEY_DE,44,0,0,0,1)=='y');
+    assert(mapped(KEY_DE,39,0,1,0,1)==from_unicode(0xd6));
+    assert(mapped(KEY_IT,26,0,0,0,1)==from_unicode(0xe8));
+    assert(mapped(KEY_PT,43,0,0,0,1)==0&&mapped(KEY_PT,30,0,0,0,1)==from_unicode(0xe3));
+    assert(mapped(KEY_BR,26,0,0,0,1)==0&&mapped(KEY_BR,30,0,0,0,1)==from_unicode(0xe1));
+    assert(mapped(KEY_FR,26,0,0,0,1)==0&&mapped(KEY_FR,48,0,0,0,1)=='^');
+    assert(keyboard_pending()=='b'&&!keyboard_pending());
+    assert(mapped(KEY_ES,40,0,0,0,1)==0&&mapped(KEY_ES,57,0,0,0,1)==from_unicode(0xb4));
+    keyboard_layout=KEY_FR;assert(upper857(from_unicode(0xe9))==from_unicode(0xc9));
+    keyboard_layout=KEY_TR_F;keyboard_reset();
+}
 int selftest(void){
     State s={0};History h={0};Doc clip={0},loaded={0};Layout l;char text[256],err[256],*utf;unsigned long before;int i;
-    doc_init(&s.d);
+    keyboard_tests();doc_init(&s.d);
     assert(utf8_decode("ÇçĞğıİÖöŞşÜü",text,sizeof(text)));utf=utf8_encode(text);assert(!strcmp(utf,"ÇçĞğıİÖöŞşÜü"));free(utf);
     assert(upper857('i')==152&&upper857(141)=='I'&&lower857('I')==141&&lower857(152)=='i');
-    assert(f_key(16,0,0)=='f'&&f_key(18,0,0)==167&&f_key(19,0,0)==141&&f_key(31,1,0)==152&&f_key(31,1,1)=='i'&&f_key(50,0,0)=='s');
+    assert(keyboard_key(KEY_TR_F,16,0,0,0,0)=='f'&&keyboard_key(KEY_TR_F,18,0,0,0,0)==167&&keyboard_key(KEY_TR_F,19,0,0,0,0)==141&&keyboard_key(KEY_TR_F,31,1,0,0,0)==152&&keyboard_key(KEY_TR_F,31,1,1,0,0)=='i'&&keyboard_key(KEY_TR_F,50,0,0,0,0)=='s');
     assert(!utf8_decode("\xc0\xaf",text,sizeof(text))&&!utf8_decode("\xed\xa0\x80",text,sizeof(text)));
     checkpoint(&h,&s);assert(insert_text(&s,"ilk"));assert(split_para(&s));set_type(&s,CHARACTER);assert(insert_text(&s,"ADA"));assert(split_para(&s));assert(s.d.p[2].type==DIALOGUE);assert(insert_text(&s,"Merhaba."));
     s.anchor.p=0;s.anchor.o=1;s.cur.p=2;s.cur.o=3;s.selecting=1;assert(copy_selection(&s,&clip));assert(delete_selection(&s));assert(!strcmp(s.d.p[0].text,"ihaba."));assert(paste(&s,&clip));assert(s.d.n==3&&!strcmp(s.d.p[0].text,"ilk")&&!strcmp(s.d.p[2].text,"Merhaba."));
@@ -145,6 +174,8 @@ int selftest(void){
     /* Turkish characters, literal slashes, metadata, backup, and rejection without data loss. */
     assert(utf8_decode("İLK FİLM",s.d.title,sizeof(s.d.title)));assert(utf8_decode("Çağrı Şen",s.d.author,sizeof(s.d.author)));put(&s.d,SCENE,"İÇ. EV - GÜNDÜZ");put(&s.d,ACTION,"Işık söner. C:\\FILM\\SES");put(&s.d,SCENE,"DIŞ. SOKAK - GECE");put(&s.d,ACTION,"Yağmur yağar.");
     file_remove("TEST.SEN");file_remove("TEST.TMP");file_remove("TEST.OLD");file_remove("TEST.BAK");assert(save_doc(&s.d,"TEST.SEN",err));assert(load_doc(&loaded,"TEST.SEN",err));assert(doc_hash(&s.d)==doc_hash(&loaded));
+    {FILE *f=file_open("TEST.SEN","rb");assert(f);assert(fgets(text,sizeof(text),f)&&!strcmp(text,"MOVIEMASTER 1\n"));fclose(f);}
+    {Doc old={0};FILE *f=file_open("LEGACY.SEN","wb");assert(f);fputs("WRITER 1\nT\t\nY\t\n1\tA preserved legacy draft.\n",f);fclose(f);assert(load_doc(&old,"LEGACY.SEN",err)&&old.n==1&&!strcmp(old.p[0].text,"A preserved legacy draft."));doc_free(&old);}
     s.cur.p=3;s.cur.o=0;s.selecting=0;assert(scene_duplicate(&s));assert(s.d.n==9);assert(scene_move(&s,1));assert(scene_move(&s,-1));assert(save_doc(&s.d,"TEST.SEN",err));
     before=doc_hash(&loaded);{FILE *f=file_open("BAD.SEN","wb");assert(f);fputs("WRITER 1\nT\tbad\nY\t\n0\tpartial",f);fclose(f);}assert(!load_doc(&loaded,"BAD.SEN",err)&&doc_hash(&loaded)==before);
     {FILE *f=file_open("TEST.TMP","wb");assert(f);fputs("do not overwrite",f);fclose(f);}assert(!save_doc(&s.d,"TEST.SEN",err));file_remove("TEST.TMP");assert(load_doc(&loaded,"TEST.SEN",err)&&doc_hash(&loaded)==doc_hash(&s.d));
@@ -155,5 +186,5 @@ int selftest(void){
     {Doc roundtrip={0};int warnings;assert(import_fountain(&roundtrip,"TEST.FTN",err,&warnings));assert(doc_hash(&roundtrip)==doc_hash(&s.d));doc_free(&roundtrip);}
     fountain_tests();case_tests();destination_tests();numbering_tests();
     {FILE *f=file_open("TEST.OK","w");assert(f);fputs("PASS: encoding, F keyboard, editing, undo/redo, clipboard, scenes, safe save/load, pagination, TXT/Fountain/PDF\n",f);fclose(f);}
-    state_free(&s);history_clear(&h);doc_free(&clip);doc_free(&loaded);puts("All WRITER core tests passed.");return 0;
+    state_free(&s);history_clear(&h);doc_free(&clip);doc_free(&loaded);puts("All Movie Master core tests passed.");return 0;
 }

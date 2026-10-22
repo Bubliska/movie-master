@@ -9,7 +9,7 @@ __pycache__/
 *.TMP
 *.OLD
 public/
-WRITER.EXE
+MOVIEMST.EXE
 hosttest
 browser-test
 *.PDF

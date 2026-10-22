@@ -1,4 +1,4 @@
-#include "writer.h"
+#include "moviemst.h"
 #include "screen.h"
 #include <stdlib.h>
 #include <string.h>
@@ -15,7 +15,7 @@ static History history;
 static Doc clipboard;
 static Layout layout;
 static char filename[512]="",status[256]="Alt+H: Help",search[128]="";
-static int f_layout=1,top=0,typing=0,running=1,overwrite=0,marking=0,active_menu=-1;
+static int top=0,typing=0,running=1,overwrite=0,marking=0,active_menu=-1;
 static const char *menu_names[]={"File","Edit","Element","Find","Format","Scenes","Export","Settings","Help","Exit"};
 static const int element_order[]={SCENE,ACTION,CHARACTER,PAREN,DIALOGUE,TRANSITION};
 static int menu_x(int at){int i,x=1;for(i=0;i<at;i++)x+=(int)strlen(menu_names[i])+2;return x;}
@@ -67,7 +67,7 @@ static void draw(void){
     snprintf(b,sizeof(b),"Page:%d/%d",layout.r[row].page,layout.pages);text(20,24,b,0x07);
     snprintf(b,sizeof(b),"Sc:%d%s",scene_count(&s.d),s.d.locked?"L":"");text(33,24,b,0x07);
     snprintf(b,sizeof(b),"Col:%d",layout.r[row].indent+s.cur.o-layout.r[row].start+1);text(43,24,b,0x07);
-    text(53,24,overwrite?"OT":"INS",0x07);text(57,24,f_layout?"TR F":"SYS",0x07);
+    text(53,24,overwrite?"OT":"INS",0x07);text(57,24,keyboard_tags[keyboard_layout],0x07);
     if(marking)text(62,24,"Selecting",0x07);
     else if(suggest)text(62,24,"Tab: complete",0x07);
     else{snprintf(b,sizeof(b),"%.17s",status);text(62,24,b,0x07);}
@@ -85,14 +85,14 @@ static int popup(const char *title,const char **items,int n,int x,int choice){
     for(;;){
         draw();frame(x,y,w,h,title,0x07);
         for(i=0;i<n;i++){int attr=i==choice?0x70:0x07;fill(x+1,y+1+i,w-2,1,attr);ut(x+2,y+1+i,items[i],attr);}
-        screen_flush(-1,-1);k=key_read(f_layout,1);
+        screen_flush(-1,-1);k=key_read(keyboard_layout,1);
         if(k.code==K_ESC)return -1;
         if(k.code==K_LEFT)return -2;
         if(k.code==K_RIGHT)return -3;
         if(k.code==K_UP)choice=(choice+n-1)%n;
         if(k.code==K_DOWN)choice=(choice+1)%n;
         if(k.code==K_ENTER||k.code==K_F9)return choice;
-        if(k.code==K_CHAR&&k.ch>='1'&&k.ch<'1'+n)return k.ch-'1';
+        if(k.code==K_CHAR&&k.ch>='1'&&k.ch<='9'&&k.ch<'1'+n)return k.ch-'1';
     }
 }
 static int menu(const char *title,const char **items,int n){int result;do{result=popup(title,items,n,-1,0);}while(result<-1);return result;}
@@ -105,11 +105,11 @@ static void notice(const char *msg){
         if(end<len){size_t space=end;while(space>at&&value[space]!=' ')space--;if(space>at){end=space;next=space+1;}}
         memcpy(line,value+at,end-at);line[end-at]=0;text(8,y,line,0x70);at=next;
     }
-    ut(8,15,"Enter / Esc: continue",0x70);screen_flush(-1,-1);do{k=key_read(f_layout,1);}while(k.code!=K_ENTER&&k.code!=K_ESC&&k.code!=K_F9);
+    ut(8,15,"Enter / Esc: continue",0x70);screen_flush(-1,-1);do{k=key_read(keyboard_layout,1);}while(k.code!=K_ENTER&&k.code!=K_ESC&&k.code!=K_F9);
 }
 static int prompt(const char *title,char *out,size_t cap,int path){
     char value[512];int pos,len,start;Key k;if(cap>sizeof(value))cap=sizeof(value);strncpy(value,out,cap-1);value[cap-1]=0;len=(int)strlen(value);pos=len;
-    for(;;){draw();box(5,7,70,8,title);ut(8,9,path?"File name (DOS: 8.3, e.g. SCRIPT.SEN)":"Enter text:",0x70);fill(8,11,64,1,0x07);start=pos>60?pos-60:0;text(8,11,value+start,0x07);ut(8,13,"Enter: confirm   Esc: cancel   Ctrl+A: clear",0x70);screen_flush(8+pos-start,11);k=key_read(f_layout,1);
+    for(;;){draw();box(5,7,70,8,title);ut(8,9,path?"File name (DOS: 8.3, e.g. SCRIPT.SEN)":"Enter text:",0x70);fill(8,11,64,1,0x07);start=pos>60?pos-60:0;text(8,11,value+start,0x07);ut(8,13,"Enter: confirm   Esc: cancel   Ctrl+A: clear",0x70);screen_flush(8+pos-start,11);k=key_read(keyboard_layout,1);
         if(k.code==K_ESC)return 0;
         if(k.code==K_ENTER||k.code==K_F9){strcpy(out,value);return 1;}
         if(k.ctrl&&lower857(k.ch)=='a'){value[0]=0;len=pos=0;}
@@ -155,11 +155,11 @@ static int browse_file(char *selected,int mode){
             fill(3,6+i,74,1,attr);text(4,6+i,label,attr);
         }
         if(saving){snprintf(display,sizeof(display),"Filter: %s%s",extension,filter==2?" (showing all files)":"");text(3,19,display,0x70);}
-        else text(3,19,filter==2?"Filter: All files":mode==BROWSE_IMPORT?"Filter: Fountain / FTN / FOU / TXT":"Filter: WRITER SEN / BAK",0x70);
+        else text(3,19,filter==2?"Filter: All files":mode==BROWSE_IMPORT?"Filter: Fountain / FTN / FOU / TXT":"Filter: SEN / BAK",0x70);
         text(3,20,"Enter Open  Backspace Parent  F1 Desktop  F2 Drives",0x70);
         text(3,21,saving?"F3 Path  F4 Filter  F5 Save Here  F6 Project  Esc Cancel":"F3 Path  F4 Filter  F6 Project  Esc Cancel",0x70);
         if(saving){path_display(name,display,sizeof(display));text(3,22,"Name: ",0x70);text(9,22,display,0x70);}
-        screen_flush(3,5);key=key_read(f_layout,1);
+        screen_flush(3,5);key=key_read(keyboard_layout,1);
         if(key.code==K_ESC){files_free(entries,count);return 0;}
         if(key.code==K_UP&&choice)choice--;
         if(key.code==K_DOWN&&choice+1<total)choice++;
@@ -231,10 +231,26 @@ static void open_file(void){
     if(!filename[0])saved_hash=doc_hash(&s.d)^1;
     strcpy(status,"Opened. F10: Save");
 }
+static int mac_import_file(char *path,const char *bridge){
+    static unsigned long serial;unsigned long identifier=((unsigned long)time(NULL)<<8)^++serial;
+    char request[512],response[512];FILE *f;time_t started=time(NULL);int cancel=0;
+    if(!path_join(request,bridge,"REQUEST.TXT")||!path_join(response,bridge,"RESPONSE.TXT")||!path_join(path,bridge,"IMPORT.FTN")){notice("Mac import path is too long.");return 0;}
+    f=file_open(request,"w");if(!f){notice("Cannot contact the Mac file chooser. Restart Movie Master.");return 0;}
+    {int ok=fprintf(f,"I %lu\n",identifier)>=0;if(fclose(f))ok=0;if(!ok){notice("Cannot request the Mac file chooser.");return 0;}}
+    draw();box(4,8,72,7,"Import Fountain");ut(7,10,"Choose your file in the macOS window.",0x70);ut(7,12,"Esc: cancel",0x70);screen_flush(-1,-1);
+    while(time(NULL)-started<600){
+        char outcome=0;unsigned long reply=0;Key k=key_read(keyboard_layout,0);
+        if(k.code==K_ESC&&!cancel){f=file_open(request,"w");if(f){fprintf(f,"C %lu\n",identifier);fclose(f);}cancel=1;}
+        f=file_open(response,"r");if(f){int n=fscanf(f,"%c %lu",&outcome,&reply);fclose(f);if(n==2&&reply==identifier){if(cancel||outcome=='C'){file_remove(path);return 0;}if(outcome=='O')return 1;notice("The selected file could not be read. Your draft is unchanged.");return 0;}}
+        idle();
+    }
+    f=file_open(request,"w");if(f){fprintf(f,"C %lu\n",identifier);fclose(f);}notice("Mac file chooser timed out. Your draft is unchanged.");return 0;
+}
 static void import_file(void){
     char path[512],error[256];Doc imported={0};int warnings;
-    if(!browse_file(path,BROWSE_IMPORT))return;
-    if(!import_fountain(&imported,path,error,&warnings)){notice(error);return;}
+    const char *bridge=getenv("MMMAC");
+    if(bridge){if(!mac_import_file(path,bridge))return;}else if(!browse_file(path,BROWSE_IMPORT))return;
+    {int ok=import_fountain(&imported,path,error,&warnings);if(bridge)file_remove(path);if(!ok){notice(error);return;}}
     if(!unsaved()){doc_free(&imported);return;}
     state_free(&s);s.d=imported;filename[0]=0;reset_history();saved_hash=doc_hash(&s.d)^1;
     snprintf(status,sizeof(status),"Imported %d paragraphs. F10: Save as SEN%s",s.d.n,warnings?" (simplified formatting)":"");
@@ -274,20 +290,20 @@ static void scenes(void){
     for(i=0;i<s.d.n;i++)if(s.d.p[i].type==SCENE){indices[n]=i;if(i<=s.cur.p)choice=n;n++;}
     if(!n){free(indices);notice("No scenes yet. Use F1 to add a Slugline.");return;}
     for(;;){if(choice<start)start=choice;if(choice>=start+12)start=choice-11;draw();{char title[80];snprintf(title,sizeof(title),"Scene List - %d scenes%s",n,s.d.locked?" (numbers locked)":"");box(3,3,74,19,title);}for(i=0;i<12&&start+i<n;i++){char b[24],number[16];int c=start+i,attr=c==choice?0x07:0x70;fill(5,5+i,70,1,attr);scene_label(&s.d,indices[c],number);snprintf(b,sizeof(b),"%10s ",number);text(5,5+i,b,attr);{char name[60];int j;strncpy(name,s.d.p[indices[c]].text,58);name[58]=0;for(j=0;name[j];j++)name[j]=(char)element_char(SCENE,(unsigned char)name[j]);text(17,5+i,name,attr);}}
-        ut(6,18,"Arrows Select  Enter Go  F2 Move Up  F3 Move Down  F4 Duplicate",0x70);ut(6,20,"Esc: return to writing",0x70);screen_flush(5,4);k=key_read(f_layout,1);if(k.code==K_ESC)break;if(k.code==K_UP&&choice)choice--;if(k.code==K_DOWN&&choice+1<n)choice++;if(k.code==K_ENTER){s.cur.p=indices[choice];s.cur.o=0;s.selecting=0;break;}
+        ut(6,18,"Arrows Select  Enter Go  F2 Move Up  F3 Move Down  F4 Duplicate",0x70);ut(6,20,"Esc: return to writing",0x70);screen_flush(5,4);k=key_read(keyboard_layout,1);if(k.code==K_ESC)break;if(k.code==K_UP&&choice)choice--;if(k.code==K_DOWN&&choice+1<n)choice++;if(k.code==K_ENTER){s.cur.p=indices[choice];s.cur.o=0;s.selecting=0;break;}
         if(k.code==K_F2||k.code==K_F3||k.code==K_F4){change();s.cur.p=indices[choice];s.cur.o=0;if(k.code==K_F4){if(!scene_duplicate(&s))strcpy(status,"Could not duplicate this scene.");}else scene_move(&s,k.code==K_F2?-1:1);rebuild();free(indices);return;}
     }free(indices);
 }
 static void cover(void){char title[128],author[128];strcpy(title,s.d.title);strcpy(author,s.d.author);if(!prompt("Title Page: title (leave blank for no title page)",title,sizeof(title),0)||!prompt("Title Page: author",author,sizeof(author),0))return;change();strcpy(s.d.title,title);strcpy(s.d.author,author);}
 static void output(int kind){
-    char path[512],folder[512],base[512],err[256];const char *font=getenv("WRFONT");
+    char path[512],folder[512],base[512],err[256];const char *font=getenv("MMFONT");
     path_split(filename,folder,base);if(!path_join(path,folder,kind==0?"OUTPUT.PDF":kind==1?"OUTPUT.TXT":"OUTPUT.FTN")){notice("Folder path is too long.");return;}
     if(!browse_file(path,BROWSE_PDF+kind))return;
     if(!confirm_replace(path))return;
     if(kind==0)export_pdf(&s.d,path,font&&*font?font:"FONT.TTF",err);else export_text(&s.d,path,kind==2,err);notice(err);strcpy(status,"F9: Menu | F10: Save");
 }
 static void help(void){
-    draw();box(2,3,76,19,"Movie Master 0.4.3 - Quick Start");
+    draw();box(2,3,76,19,"Movie Master 0.4.4 - Quick Start");
     ut(5,5,"F1 Slug  F2 Action  F3 Character  F4 Parenthetical",0x70);
     ut(5,6,"F5 Dialog  F6 Transition  F7 Insert/Overwrite  F8 Select",0x70);
     ut(5,8,"F9 / Esc: menus. F10 / Ctrl+S: save. Alt+X: exit.",0x70);
@@ -298,7 +314,7 @@ static void help(void){
     ut(5,15,"Ctrl+Z/Y Undo/Redo. Shift+Arrows Select. Ctrl+C/X/V Copy/Cut/Paste.",0x70);
     ut(5,17,"Ctrl+F Find. Ctrl+G Find Next. Ctrl+H Replace All.",0x70);
     ut(5,18,"Scenes: numbers / lock / list. Sc: scene count; L: numbers locked.",0x70);
-    ut(5,20,"Enter / Esc / F9: return to writing",0x70);screen_flush(-1,-1);{Key k;do{k=key_read(f_layout,1);}while(k.code!=K_ENTER&&k.code!=K_ESC&&k.code!=K_F9);}
+    ut(5,20,"Enter / Esc / F9: return to writing",0x70);screen_flush(-1,-1);{Key k;do{k=key_read(keyboard_layout,1);}while(k.code!=K_ENTER&&k.code!=K_ESC&&k.code!=K_F9);}
 }
 static int menu_shortcut(int ch){static const char keys[]="felimcpthx";const char *p=ch?strchr(keys,lower857(ch)):NULL;return p?(int)(p-keys):-1;}
 static void main_menu(int initial){
@@ -310,11 +326,10 @@ static void main_menu(int initial){
     const char *format[]={"Element Type...","Title Page..."};
     const char *scene[]={"Scene List...",s.d.numbering?"Hide Scene Numbers":"Show Scene Numbers",s.d.locked?"Unlock and Renumber...":"Lock Scene Numbers"};
     const char *export[]={"PDF...","Plain Text...","Fountain..."};
-    const char *settings[]={"Turkish F Keyboard","System / Q Keyboard"};
     const char *help_items[]={"Quick Start..."};
     const char *exit_items[]={"Exit Movie Master"};
-    const char **groups[]={file,edit,element,find,format,scene,export,settings,help_items,exit_items};
-    const int counts[]={6,6,7,3,2,3,3,2,1,1};
+    const char **groups[]={file,edit,element,find,format,scene,export,keyboard_names,help_items,exit_items};
+    const int counts[]={6,6,7,3,2,3,3,KEY_COUNT,1,1};
     if(initial>=0)selected=initial;
     for(;;){
         active_menu=selected;
@@ -322,7 +337,7 @@ static void main_menu(int initial){
             if(b>=0)break;
             if(b==-1)open=0;else selected=(selected+(b==-2?9:1))%10;
         }else{
-            draw();k=key_read(f_layout,1);
+            draw();k=key_read(keyboard_layout,1);
             if(k.code==K_ESC){active_menu=-1;return;}
             if(k.code==K_LEFT)selected=(selected+9)%10;
             if(k.code==K_RIGHT)selected=(selected+1)%10;
@@ -345,7 +360,7 @@ static void main_menu(int initial){
         }
     }
     if(a==6)output(b);
-    if(a==7){FILE *f;f_layout=b==0;f=file_open("WRITER.CFG","w");if(f){fprintf(f,"%d\n",f_layout);fclose(f);}}
+    if(a==7){FILE *f;keyboard_layout=b;keyboard_reset();f=file_open("MOVIEMST.CFG","w");if(f){fprintf(f,"KEYBOARD %d\n",keyboard_layout);fclose(f);}snprintf(status,sizeof(status),"Keyboard: %s",keyboard_names[keyboard_layout]);}
     if(a==8)help();
     if(a==9&&unsaved())running=0;
 }
@@ -365,6 +380,7 @@ static void move_cursor(Key k){
 }
 static void handle(Key k){
     int ch=lower857(k.ch);time_t now=time(NULL);
+    if(k.code==K_CHAR&&k.ch<0){strcpy(status,"This character is not available in the DOS Latin text set.");return;}
     if(k.code!=K_CHAR||k.ctrl||k.alt)typing=0;
     if(k.code>=K_LEFT&&k.code<=K_PGDN){move_cursor(k);return;}
     if(k.code>=K_F1&&k.code<=K_F6){use_type(element_order[k.code-K_F1],1);return;}
@@ -405,15 +421,15 @@ static int ui_selftest(void){
     state_free(&s);history_clear(&history);doc_init(&s.d);assert(insert_text(&s,"McClane"));set_type(&s,CHARACTER);assert(doc_insert(&s.d,1,CHARACTER,"mc"));s.cur.p=1;s.cur.o=2;rebuild();
     /* Complete an uppercase-looking cue without losing its stored spelling. */
     assert(suggestion()&&!strcmp(suggestion(),"Clane"));key=(Key){K_TAB,0,0,0,0};handle(key);assert(!strcmp(s.d.p[1].text,"mcClane"));
-    state_free(&s);history_clear(&history);layout_free(&layout);puts("All WRITER element, overwrite, selection and case-preservation tests passed.");return 0;
+    state_free(&s);history_clear(&history);layout_free(&layout);puts("All Movie Master element, overwrite, selection and case-preservation tests passed.");return 0;
 }
 int main(int argc,char **argv){
     FILE *cfg;char err[256];time_t now;if(argc>1&&!strcmp(argv[1],"/TEST")){int result=selftest();return result?result:ui_selftest();}
 #if !defined(_WIN32) && !defined(__DJGPP__)
     fputs("This is a test build. Use the Windows or DOS version.\n",stderr);return 1;
 #endif
-    doc_init(&s.d);saved_hash=doc_hash(&s.d);cfg=file_open("WRITER.CFG","r");if(cfg){int v;if(fscanf(cfg,"%d",&v)==1)f_layout=v!=0;fclose(cfg);}rebuild();screen_init();
+    doc_init(&s.d);saved_hash=doc_hash(&s.d);cfg=file_open("MOVIEMST.CFG","r");if(!cfg)cfg=file_open("WRITER.CFG","r");if(cfg){int v;if(fscanf(cfg,"KEYBOARD %d",&v)==1){if(v>=0&&v<KEY_COUNT)keyboard_layout=v;}else{rewind(cfg);if(fscanf(cfg,"%d",&v)==1)keyboard_layout=v?KEY_TR_F:KEY_SYSTEM;}fclose(cfg);}rebuild();screen_init();
     cfg=file_open("KURTAR.SEN","rb");if(cfg){const char *m[]={"Open recovery file","Start new (archive previous recovery)"};int choice;fclose(cfg);choice=menu("Recovery from a previous session",m,2);if(choice==0){if(load_doc(&s.d,"KURTAR.SEN",err)){reset_history();saved_hash=doc_hash(&s.d)^1;strcpy(status,"Recovered. Press F10 to save with a new name.");}else{notice(err);running=0;}}else{int i,archived=0;for(i=1;i<1000;i++){char path[16];snprintf(path,sizeof(path),"ESKI%03d.SEN",i);cfg=file_open(path,"rb");if(cfg){fclose(cfg);continue;}if(!file_rename("KURTAR.SEN",path)){archived=1;snprintf(status,sizeof(status),"Previous recovery archived as %s.",path);}break;}if(!archived){notice("Cannot archive recovery. Exiting to preserve the file.");running=0;}}}
-    last_recovery=time(NULL);while(running){Key k;draw();k=key_read(f_layout,0);if(k.code)handle(k);else idle();now=time(NULL);if(dirty()&&now-last_recovery>=60){if(save_doc(&s.d,"KURTAR.SEN",err))strcpy(status,"Recovery saved. F10: save your document");else snprintf(status,sizeof(status),"Recovery: %.220s",err);last_recovery=now;}}
-    screen_done();state_free(&s);history_clear(&history);doc_free(&clipboard);layout_free(&layout);puts("Movie Master 0.4.3 - Happy writing.");return 0;
+    last_recovery=time(NULL);while(running){Key k;draw();k=key_read(keyboard_layout,0);if(k.code)handle(k);else idle();now=time(NULL);if(dirty()&&now-last_recovery>=60){if(save_doc(&s.d,"KURTAR.SEN",err))strcpy(status,"Recovery saved. F10: save your document");else snprintf(status,sizeof(status),"Recovery: %.220s",err);last_recovery=now;}}
+    screen_done();state_free(&s);history_clear(&history);doc_free(&clipboard);layout_free(&layout);puts("Movie Master 0.4.4 - Happy writing.");return 0;
 }

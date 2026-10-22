@@ -1,7 +1,7 @@
 In this source repository, notices are the LICENSE-* files. Portable release
 archives use the LICENSES directory referenced below.
 
-WRITER source was written for this project. No historical Movie Master or Fade In
+Movie Master source was written for this project. No historical Movie Master or Fade In
 binary, source code or assets are bundled; they were workflow references.
 
 FONT.TTF is the unmodified Courier Prime Regular font by Alan Dague-Greene,

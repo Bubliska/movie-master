@@ -1,5 +1,5 @@
 /* Exercise the actual modal file operations with a bounded input queue. */
-#define main writer_program_main
+#define main movie_master_program_main
 #include "main.c"
 #undef main
 #include <sys/stat.h>
@@ -37,7 +37,11 @@ static void numbering_menus(void){
 
 int main(void){
     char project[512],other[512],path[512],error[256],oldfile[512],utf[128];unsigned long hash;FILE *f;int kind;
-    numbering_menus();assert(getcwd(project,sizeof(project)));assert(path_join(other,project,"chosen"));assert(mkdir(other,0700)==0);
+    numbering_menus();
+    doc_init(&s.d);rebuild();
+    for(kind=0;kind<KEY_COUNT;kind++){int at;for(at=0;at<kind;at++)key(K_DOWN);key(K_ENTER);main_menu(7);done();assert(keyboard_layout==kind);}
+    keyboard_layout=KEY_TR_F;keyboard_reset();state_free(&s);layout_free(&layout);
+    assert(getcwd(project,sizeof(project)));assert(path_join(other,project,"chosen"));assert(mkdir(other,0700)==0);
     doc_init(&s.d);assert(utf8_decode("İpek ışığı açar. McClane bekler.",utf,sizeof(utf)));assert(insert_text(&s,utf));rebuild();hash=doc_hash(&s.d);
     /* Cancel both the browser and filename prompt: no filename or document change. */
     key(K_ESC);assert(!save(0));done();assert(!filename[0]&&doc_hash(&s.d)==hash);
