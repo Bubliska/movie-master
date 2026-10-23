@@ -107,7 +107,8 @@ executable is MOVIEMST.EXE to fit DOS 8.3 filenames.
 ## Website and deployment
 
 The buildless landing page uses index.html, credits.html, style.css, app.js,
-mark.svg and movie-master-dune.png. Serve the root with any static HTTP server.
+mark.svg, movie-master-dune.png, robots.txt and sitemap.xml. Serve the root
+with any static HTTP server.
 The image is an unretouched screenshot of the running v0.4.2 DOS app, containing
 an original Arrakis/Paul/Chani demo scene, not a published screenplay excerpt.
 Eric Roth sources and image credits are on the credits page; no endorsement.
@@ -116,10 +117,12 @@ addresses for Ethereum (ERC20) and TRON (TRC20). Payments happen outside the sit
 crypto addresses can be copied without connecting a wallet.
 
 Import this repository in Vercel with the Other framework preset and root `.`.
-vercel.json copies only the six public site files into public/. No dependencies
+vercel.json copies only the eight public site files into public/. No dependencies
 are installed. App downloads link to GitHub release assets, so the website does
 not reconstruct large binaries in the browser. Update both download links and
 version text together when publishing a new release. A push updates the site.
+Canonical URLs use https://www.moviemaster.app/. Keep the Google and Bing
+verification meta tags in index.html to retain webmaster verification.
 
 ## License and limitations
 
