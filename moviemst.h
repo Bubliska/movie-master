@@ -55,6 +55,7 @@ extern int keyboard_layout;
 extern const char *keyboard_names[KEY_COUNT],*keyboard_tags[KEY_COUNT];
 int keyboard_key(int layout,int scan,int shift,int caps,int altgr,int compose);
 int keyboard_pending(void);
+int keyboard_control_scan(int scan);
 void keyboard_reset(void);
 int letter_case(int c,int upper);
 unsigned long doc_hash(const Doc *d);

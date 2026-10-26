@@ -23,14 +23,13 @@ static unsigned long saved_hash;
 static time_t last_edit,last_recovery;
 static int dirty(void){return doc_hash(&s.d)!=saved_hash;}
 static void text(int x,int y,const char *cp,int attr){while(*cp&&x<80)cell(x++,y,(unsigned char)*cp++,attr);}
-static void ut(int x,int y,const char *u,int attr){char b[512];if(utf8_decode(u,b,sizeof(b)))text(x,y,b,attr);else text(x,y,u,attr);}
 static void fill(int x,int y,int w,int h,int attr){int i,j;for(j=0;j<h;j++)for(i=0;i<w;i++)cell(x+i,y+j,' ',attr);}
 static void frame(int x,int y,int w,int h,const char *title,int attr){
     int i;fill(x,y,w,h,attr);
     for(i=1;i<w-1;i++){cell(x+i,y,196,attr);cell(x+i,y+h-1,196,attr);}
     for(i=1;i<h-1;i++){cell(x,y+i,179,attr);cell(x+w-1,y+i,179,attr);}
     cell(x,y,218,attr);cell(x+w-1,y,191,attr);cell(x,y+h-1,192,attr);cell(x+w-1,y+h-1,217,attr);
-    if(title&&*title)ut(x+2,y,title,attr);
+    if(title&&*title)text(x+2,y,title,attr);
 }
 static void box(int x,int y,int w,int h,const char *title){frame(x,y,w,h,title,0x70);}
 static int current_row(void){int i,found=0;for(i=0;i<layout.n;i++)if(layout.r[i].p==s.cur.p&&s.cur.o>=layout.r[i].start){found=i;if(s.cur.o<layout.r[i].end)break;}return found;}
@@ -84,7 +83,7 @@ static int popup(const char *title,const char **items,int n,int x,int choice){
     if(x+w>80)x=80-w;
     for(;;){
         draw();frame(x,y,w,h,title,0x07);
-        for(i=0;i<n;i++){int attr=i==choice?0x70:0x07;fill(x+1,y+1+i,w-2,1,attr);ut(x+2,y+1+i,items[i],attr);}
+        for(i=0;i<n;i++){int attr=i==choice?0x70:0x07;fill(x+1,y+1+i,w-2,1,attr);text(x+2,y+1+i,items[i],attr);}
         screen_flush(-1,-1);k=key_read(keyboard_layout,1);
         if(k.code==K_ESC)return -1;
         if(k.code==K_LEFT)return -2;
@@ -105,18 +104,27 @@ static void notice(const char *msg){
         if(end<len){size_t space=end;while(space>at&&value[space]!=' ')space--;if(space>at){end=space;next=space+1;}}
         memcpy(line,value+at,end-at);line[end-at]=0;text(8,y,line,0x70);at=next;
     }
-    ut(8,15,"Enter / Esc: continue",0x70);screen_flush(-1,-1);do{k=key_read(keyboard_layout,1);}while(k.code!=K_ENTER&&k.code!=K_ESC&&k.code!=K_F9);
+    text(8,15,"Enter / Esc: continue",0x70);screen_flush(-1,-1);do{k=key_read(keyboard_layout,1);}while(k.code!=K_ENTER&&k.code!=K_ESC&&k.code!=K_F9);
 }
-static int prompt(const char *title,char *out,size_t cap,int path){
-    char value[512];int pos,len,start;Key k;if(cap>sizeof(value))cap=sizeof(value);strncpy(value,out,cap-1);value[cap-1]=0;len=(int)strlen(value);pos=len;
-    for(;;){draw();box(5,7,70,8,title);ut(8,9,path?"File name (DOS: 8.3, e.g. SCRIPT.SEN)":"Enter text:",0x70);fill(8,11,64,1,0x07);start=pos>60?pos-60:0;text(8,11,value+start,0x07);ut(8,13,"Enter: confirm   Esc: cancel   Ctrl+A: clear",0x70);screen_flush(8+pos-start,11);k=key_read(keyboard_layout,1);
+static int edit_text(char *value,size_t cap,int *pos,Key k){
+    int len=(int)strlen(value);
+    if(k.code==K_CHAR&&k.ctrl&&lower857(k.ch)=='a'){value[0]=0;*pos=0;}
+    else if(k.code==K_LEFT){if(*pos)(*pos)--;}
+    else if(k.code==K_RIGHT){if(*pos<len)(*pos)++;}
+    else if(k.code==K_HOME)*pos=0;
+    else if(k.code==K_END)*pos=len;
+    else if(k.code==K_BACK){if(*pos){memmove(value+*pos-1,value+*pos,len-*pos+1);(*pos)--;}}
+    else if(k.code==K_DEL){if(*pos<len)memmove(value+*pos,value+*pos+1,len-*pos);}
+    else if(k.code==K_CHAR&&!k.ctrl&&!k.alt&&k.ch>=32&&k.ch<=255){if(len+1<(int)cap){memmove(value+*pos+1,value+*pos,len-*pos+1);value[(*pos)++]=(char)k.ch;}}
+    else return 0;
+    return 1;
+}
+static int prompt(const char *title,char *out,size_t cap){
+    char value[512],visible[65];int pos,start;Key k;if(cap>sizeof(value))cap=sizeof(value);strncpy(value,out,cap-1);value[cap-1]=0;pos=(int)strlen(value);
+    for(;;){draw();box(5,7,70,8,title);text(8,9,"Enter text:",0x70);fill(8,11,64,1,0x07);start=pos>60?pos-60:0;snprintf(visible,sizeof(visible),"%.64s",value+start);text(8,11,visible,0x07);text(8,13,"Enter: confirm   Esc: cancel   Ctrl+A: clear",0x70);screen_flush(8+pos-start,11);k=key_read(keyboard_layout,1);
         if(k.code==K_ESC)return 0;
         if(k.code==K_ENTER||k.code==K_F9){strcpy(out,value);return 1;}
-        if(k.ctrl&&lower857(k.ch)=='a'){value[0]=0;len=pos=0;}
-        else if(k.code==K_LEFT&&pos)pos--;else if(k.code==K_RIGHT&&pos<len)pos++;else if(k.code==K_HOME)pos=0;else if(k.code==K_END)pos=len;
-        else if(k.code==K_BACK&&pos){memmove(value+pos-1,value+pos,len-pos+1);pos--;len--;}
-        else if(k.code==K_DEL&&pos<len){memmove(value+pos,value+pos+1,len-pos);len--;}
-        else if(k.code==K_CHAR&&!k.ctrl&&!k.alt&&k.ch>=32&&k.ch<=255&&len+1<(int)cap){int ch=k.ch;if(path){if(ch>126||strchr("*?<>|\"",ch))continue;ch=toupper(ch);}memmove(value+pos+1,value+pos,len-pos+1);value[pos++]=(char)ch;len++;}
+        edit_text(value,cap,&pos,k);
     }
 }
 enum {BROWSE_OPEN,BROWSE_IMPORT,BROWSE_SAVE,BROWSE_PDF,BROWSE_TEXT,BROWSE_FOUNTAIN};
@@ -126,11 +134,13 @@ static int browse_destination(char *out,const char *path,const char *extension,c
 static int browse_file(char *selected,int mode){
     static const char *titles[]={"Open Document","Import Fountain","Save As","Export PDF","Export Plain Text","Export Fountain"};
     static const char *extensions[]={".SEN",".PDF",".TXT",".FTN"};
-    char folder[512],desktop[512],project[512],name[512]="",error[256],display[512];FileEntry *entries=NULL;
+    char folder[512],desktop[512],project[512],name[512]="",typed[512],before[512],error[256],display[512];FileEntry *entries=NULL;
     int saving=mode>=BROWSE_SAVE,count=0,choice=0,start=0,default_filter=mode<2?mode:mode+1,filter=default_filter,drives=0,reload=1;
+    int name_focus=saving,pos=0,replace_name=1;
     const char *extension=saving?extensions[mode-BROWSE_SAVE]:"";
     desktop_path(desktop);path_split(filename,project,display);if(!project[0]||path_type(project)!=PATH_DIR)strcpy(project,desktop);strcpy(folder,desktop);
     if(saving){path_split(selected,folder,name);if(!folder[0]||path_type(folder)!=PATH_DIR)strcpy(folder,project);}
+    path_display(name,typed,sizeof(typed));strcpy(before,typed);pos=(int)strlen(typed);
     for(;;){
         Key key;int i,total;
         if(reload){
@@ -146,7 +156,7 @@ static int browse_file(char *selected,int mode){
         path_display(drives?"Computer / Drives":folder,display,sizeof(display));
         text(3,4,!drives&&!strcmp(folder,desktop)?"Desktop:":"Folder: ",0x70);text(11,4,display+(strlen(display)>65?strlen(display)-65:0),0x70);
         for(i=0;i<13&&start+i<total;i++){
-            int at=start+i,attr=at==choice?0x07:0x70;char name[512],label[73];
+            int at=start+i,attr=at==choice&&!name_focus?0x07:0x70;char name[512],label[73];
             if(!at)strcpy(label,drives?"[Desktop]":"[..] Parent folder");
             else{FileEntry *e=entries+at-1;path_display(e->name,name,sizeof(name));
                 if(strlen(name)>64){name[61]='.';name[62]='.';name[63]='.';name[64]=0;}
@@ -154,13 +164,21 @@ static int browse_file(char *selected,int mode){
             }
             fill(3,6+i,74,1,attr);text(4,6+i,label,attr);
         }
-        if(saving){snprintf(display,sizeof(display),"Filter: %s%s",extension,filter==2?" (showing all files)":"");text(3,19,display,0x70);}
+        if(saving){snprintf(display,sizeof(display),"Filter: %s%s   F6 Project",extension,filter==2?" (showing all files)":"");text(3,19,display,0x70);}
         else text(3,19,filter==2?"Filter: All files":mode==BROWSE_IMPORT?"Filter: Fountain / FTN / FOU / TXT":"Filter: SEN / BAK",0x70);
-        text(3,20,"Enter Open  Backspace Parent  F1 Desktop  F2 Drives",0x70);
-        text(3,21,saving?"F3 Path  F4 Filter  F5 Save Here  F6 Project  Esc Cancel":"F3 Path  F4 Filter  F6 Project  Esc Cancel",0x70);
-        if(saving){path_display(name,display,sizeof(display));text(3,22,"Name: ",0x70);text(9,22,display,0x70);}
-        screen_flush(3,5);key=key_read(keyboard_layout,1);
+        text(3,20,saving?"Tab Name/Files  Arrows Browse  F1 Desktop  F2 Drives":"Enter Open  Backspace Parent  F1 Desktop  F2 Drives",0x70);
+        text(3,21,saving?"Enter Save/Open  F3 Path  F4 Filter  F5 Save Here  Esc Cancel":"F3 Path  F4 Filter  F6 Project  Esc Cancel",0x70);
+        if(saving){int offset=pos>64?pos-64:0,attr=name_focus?0x07:0x70;snprintf(display,sizeof(display),"%.67s",typed+offset);text(3,22,"Name: ",0x70);fill(9,22,68,1,attr);text(9,22,display,name_focus&&replace_name?0x70:attr);screen_flush(name_focus?9+pos-offset:3,name_focus?22:5);}
+        else screen_flush(3,5);
+        key=key_read(keyboard_layout,1);
         if(key.code==K_ESC){files_free(entries,count);return 0;}
+        if(saving&&key.code==K_TAB){name_focus=!name_focus;continue;}
+        if(saving&&key.code==K_CHAR&&!key.alt&&(!key.ctrl||lower857(key.ch)=='a'))name_focus=1;
+        if(saving&&name_focus){
+            if(replace_name&&((key.code==K_CHAR&&!key.ctrl&&!key.alt&&key.ch>=32&&key.ch<=255)||key.code==K_BACK||key.code==K_DEL)){typed[0]=0;pos=0;}
+            if(edit_text(typed,sizeof(typed),&pos,key)){replace_name=0;continue;}
+        }
+        if(key.code==K_UP||key.code==K_DOWN||key.code==K_PGUP||key.code==K_PGDN)name_focus=0;
         if(key.code==K_UP&&choice)choice--;
         if(key.code==K_DOWN&&choice+1<total)choice++;
         if(key.code==K_PGUP){choice-=12;if(choice<0)choice=0;}
@@ -172,22 +190,20 @@ static int browse_file(char *selected,int mode){
         if(key.code==K_F4){filter=filter==2?default_filter:2;reload=1;}
         if(key.code==K_F6){strcpy(folder,project);drives=0;reload=1;}
         if(key.code==K_F5&&saving&&drives){notice("Open a drive or folder before choosing Save Here.");continue;}
-        if(key.code==K_F5&&saving&&!drives){
-            char typed[512],before[512],native[512],path[512];path_display(name,typed,sizeof(typed));strcpy(before,typed);
-            if(prompt("File name - Enter saves in the selected folder",typed,sizeof(typed),0)){
+        if(saving&&!drives&&(key.code==K_F5||(key.code==K_ENTER&&name_focus))){
+            char native[512],path[512];
 #ifdef __DJGPP__
-                strcpy(native,typed);
+            strcpy(native,typed);
 #else
-                if(!strcmp(before,typed))strcpy(native,name);else{char *utf=utf8_encode(typed);if(strlen(utf)>=sizeof(native)){free(utf);notice("File name is too long.");continue;}strcpy(native,utf);free(utf);}
+            if(!strcmp(before,typed))strcpy(native,name);else{char *utf=utf8_encode(typed);if(strlen(utf)>=sizeof(native)){free(utf);notice("File name is too long.");continue;}strcpy(native,utf);free(utf);}
 #endif
-                if(destination_path(path,folder,native,extension,error)){strcpy(selected,path);files_free(entries,count);return 1;}
-                notice(error);
-            }
+            if(destination_path(path,folder,native,extension,error)){strcpy(selected,path);files_free(entries,count);return 1;}
+            notice(error);name_focus=1;continue;
         }
         if(key.code==K_BACK){if(drives){desktop_path(folder);drives=0;}else path_parent(folder);reload=1;}
         if(key.code==K_F3){
             char typed[512],path[512];path_display(folder,typed,sizeof(typed));
-            if(prompt("Go to a folder or file path",typed,sizeof(typed),0)){
+            if(prompt("Go to a folder or file path",typed,sizeof(typed))){
 #ifdef __DJGPP__
                 strcpy(path,typed);
 #else
@@ -196,7 +212,7 @@ static int browse_file(char *selected,int mode){
                 if(path[0]!='/'&&path[0]!='\\'&&!(path[0]&&path[1]==':')){
                     char absolute[512];if(!path_join(absolute,folder,path)){notice("Path is too long.");continue;}strcpy(path,absolute);
                 }
-                if(path_type(path)==PATH_DIR){strcpy(folder,path);drives=0;reload=1;}
+                if(path_type(path)==PATH_DIR){strcpy(folder,path);drives=0;reload=1;name_focus=saving;}
                 else if(saving){char destination[512];if(browse_destination(destination,path,extension,error)){strcpy(selected,destination);files_free(entries,count);return 1;}notice(error);}
                 else if(path_type(path)==PATH_FILE){strcpy(selected,path);files_free(entries,count);return 1;}
                 else notice("That path does not exist or cannot be read.");
@@ -237,7 +253,7 @@ static int mac_import_file(char *path,const char *bridge){
     if(!path_join(request,bridge,"REQUEST.TXT")||!path_join(response,bridge,"RESPONSE.TXT")||!path_join(path,bridge,"IMPORT.FTN")){notice("Mac import path is too long.");return 0;}
     f=file_open(request,"w");if(!f){notice("Cannot contact the Mac file chooser. Restart Movie Master.");return 0;}
     {int ok=fprintf(f,"I %lu\n",identifier)>=0;if(fclose(f))ok=0;if(!ok){notice("Cannot request the Mac file chooser.");return 0;}}
-    draw();box(4,8,72,7,"Import Fountain");ut(7,10,"Choose your file in the macOS window.",0x70);ut(7,12,"Esc: cancel",0x70);screen_flush(-1,-1);
+    draw();box(4,8,72,7,"Import Fountain");text(7,10,"Choose your file in the macOS window.",0x70);text(7,12,"Esc: cancel",0x70);screen_flush(-1,-1);
     while(time(NULL)-started<600){
         char outcome=0;unsigned long reply=0;Key k=key_read(keyboard_layout,0);
         if(k.code==K_ESC&&!cancel){f=file_open(request,"w");if(f){fprintf(f,"C %lu\n",identifier);fclose(f);}cancel=1;}
@@ -271,14 +287,14 @@ static void edit_type(int add){
     if(a>=0)use_type(element_order[a],add);
 }
 static void find_next(int again){
-    int i,offset=s.cur.o,pass;if(!again&&(!prompt("Find (case-sensitive)",search,sizeof(search),0)||!search[0]))return;
+    int i,offset=s.cur.o,pass;if(!again&&(!prompt("Find (case-sensitive)",search,sizeof(search))||!search[0]))return;
     if(!search[0])return;
     for(pass=0;pass<2;pass++)for(i=pass?0:s.cur.p;i<s.d.n&&(pass==0||i<=s.cur.p);i++){const char *p=element_find(s.d.p[i].type,s.d.p[i].text+(pass==0&&i==s.cur.p?offset:0),search);if(p){s.anchor.p=i;s.anchor.o=(int)(p-s.d.p[i].text);s.cur=s.anchor;s.cur.o+=(int)strlen(search);s.selecting=1;strcpy(status,"Found. Ctrl+G: Next");return;}}
     strcpy(status,"Text not found.");
 }
 static void replace_all(void){
     char with[128]="";int i,count=0;State tmp;
-    if(!prompt("Replace All: find text",search,sizeof(search),0)||!search[0]||!prompt("Replace with",with,sizeof(with),0))return;
+    if(!prompt("Replace All: find text",search,sizeof(search))||!search[0]||!prompt("Replace with",with,sizeof(with)))return;
     state_clone(&tmp,&s);for(i=0;i<tmp.d.n;i++){char *src=tmp.d.p[i].text;const char *p=src,*q;size_t oldlen=strlen(search),newlen=strlen(with),size=strlen(src),matches=0;while((q=element_find(tmp.d.p[i].type,p,search))){matches++;p=q+oldlen;}if(!matches)continue;
         if(newlen>oldlen&&size+matches*(newlen-oldlen)>MAX_TEXT){state_free(&tmp);notice("Result exceeds the paragraph limit. Document unchanged.");return;}
         {char *dst=mem(size+matches*newlen+1),*w=dst;p=src;while((q=element_find(tmp.d.p[i].type,p,search))){memcpy(w,p,q-p);w+=q-p;memcpy(w,with,newlen);w+=newlen;p=q+oldlen;}strcpy(w,p);free(tmp.d.p[i].text);tmp.d.p[i].text=dst;}count+=(int)matches;
@@ -290,11 +306,11 @@ static void scenes(void){
     for(i=0;i<s.d.n;i++)if(s.d.p[i].type==SCENE){indices[n]=i;if(i<=s.cur.p)choice=n;n++;}
     if(!n){free(indices);notice("No scenes yet. Use F1 to add a Slugline.");return;}
     for(;;){if(choice<start)start=choice;if(choice>=start+12)start=choice-11;draw();{char title[80];snprintf(title,sizeof(title),"Scene List - %d scenes%s",n,s.d.locked?" (numbers locked)":"");box(3,3,74,19,title);}for(i=0;i<12&&start+i<n;i++){char b[24],number[16];int c=start+i,attr=c==choice?0x07:0x70;fill(5,5+i,70,1,attr);scene_label(&s.d,indices[c],number);snprintf(b,sizeof(b),"%10s ",number);text(5,5+i,b,attr);{char name[60];int j;strncpy(name,s.d.p[indices[c]].text,58);name[58]=0;for(j=0;name[j];j++)name[j]=(char)element_char(SCENE,(unsigned char)name[j]);text(17,5+i,name,attr);}}
-        ut(6,18,"Arrows Select  Enter Go  F2 Move Up  F3 Move Down  F4 Duplicate",0x70);ut(6,20,"Esc: return to writing",0x70);screen_flush(5,4);k=key_read(keyboard_layout,1);if(k.code==K_ESC)break;if(k.code==K_UP&&choice)choice--;if(k.code==K_DOWN&&choice+1<n)choice++;if(k.code==K_ENTER){s.cur.p=indices[choice];s.cur.o=0;s.selecting=0;break;}
+        text(6,18,"Arrows Select  Enter Go  F2 Move Up  F3 Move Down  F4 Duplicate",0x70);text(6,20,"Esc: return to writing",0x70);screen_flush(5,4);k=key_read(keyboard_layout,1);if(k.code==K_ESC)break;if(k.code==K_UP&&choice)choice--;if(k.code==K_DOWN&&choice+1<n)choice++;if(k.code==K_ENTER){s.cur.p=indices[choice];s.cur.o=0;s.selecting=0;break;}
         if(k.code==K_F2||k.code==K_F3||k.code==K_F4){change();s.cur.p=indices[choice];s.cur.o=0;if(k.code==K_F4){if(!scene_duplicate(&s))strcpy(status,"Could not duplicate this scene.");}else scene_move(&s,k.code==K_F2?-1:1);rebuild();free(indices);return;}
     }free(indices);
 }
-static void cover(void){char title[128],author[128];strcpy(title,s.d.title);strcpy(author,s.d.author);if(!prompt("Title Page: title (leave blank for no title page)",title,sizeof(title),0)||!prompt("Title Page: author",author,sizeof(author),0))return;change();strcpy(s.d.title,title);strcpy(s.d.author,author);}
+static void cover(void){char title[128],author[128];strcpy(title,s.d.title);strcpy(author,s.d.author);if(!prompt("Title Page: title (leave blank for no title page)",title,sizeof(title))||!prompt("Title Page: author",author,sizeof(author)))return;change();strcpy(s.d.title,title);strcpy(s.d.author,author);}
 static void output(int kind){
     char path[512],folder[512],base[512],err[256];const char *font=getenv("MMFONT");
     path_split(filename,folder,base);if(!path_join(path,folder,kind==0?"OUTPUT.PDF":kind==1?"OUTPUT.TXT":"OUTPUT.FTN")){notice("Folder path is too long.");return;}
@@ -303,18 +319,18 @@ static void output(int kind){
     if(kind==0)export_pdf(&s.d,path,font&&*font?font:"FONT.TTF",err);else export_text(&s.d,path,kind==2,err);notice(err);strcpy(status,"F9: Menu | F10: Save");
 }
 static void help(void){
-    draw();box(2,3,76,19,"Movie Master 0.4.4 - Quick Start");
-    ut(5,5,"F1 Slug  F2 Action  F3 Character  F4 Parenthetical",0x70);
-    ut(5,6,"F5 Dialog  F6 Transition  F7 Insert/Overwrite  F8 Select",0x70);
-    ut(5,8,"F9 / Esc: menus. F10 / Ctrl+S: save. Alt+X: exit.",0x70);
-    ut(5,9,"Alt+H: help. Ctrl+O: open. Ctrl+I: import Fountain.",0x70);
-    ut(5,11,"F1-F6 add an element at the cursor; empty elements change type.",0x70);
-    ut(5,12,"Ctrl+Enter: Add Element. Element > Change Current Type: convert.",0x70);
-    ut(5,14,"Tab: next type / complete. Shift+Tab: previous type.",0x70);
-    ut(5,15,"Ctrl+Z/Y Undo/Redo. Shift+Arrows Select. Ctrl+C/X/V Copy/Cut/Paste.",0x70);
-    ut(5,17,"Ctrl+F Find. Ctrl+G Find Next. Ctrl+H Replace All.",0x70);
-    ut(5,18,"Scenes: numbers / lock / list. Sc: scene count; L: numbers locked.",0x70);
-    ut(5,20,"Enter / Esc / F9: return to writing",0x70);screen_flush(-1,-1);{Key k;do{k=key_read(keyboard_layout,1);}while(k.code!=K_ENTER&&k.code!=K_ESC&&k.code!=K_F9);}
+    draw();box(2,3,76,19,"Movie Master 0.4.5 - Quick Start");
+    text(5,5,"F1 Slug  F2 Action  F3 Character  F4 Parenthetical",0x70);
+    text(5,6,"F5 Dialog  F6 Transition  F7 Insert/Overwrite  F8 Select",0x70);
+    text(5,8,"F9 / Esc: menus. F10 / Ctrl+S: save. Alt+X: exit.",0x70);
+    text(5,9,"Alt+H: help. Ctrl+O: open. Ctrl+I: import Fountain.",0x70);
+    text(5,11,"F1-F6 add an element at the cursor; empty elements change type.",0x70);
+    text(5,12,"Ctrl+Enter: Add Element. Element > Change Current Type: convert.",0x70);
+    text(5,14,"Tab: next type / complete. Shift+Tab: previous type.",0x70);
+    text(5,15,"Ctrl+Z/Y Undo/Redo. Shift+Arrows Select. Ctrl+C/X/V Copy/Cut/Paste.",0x70);
+    text(5,17,"Ctrl+F Find. Ctrl+G Find Next. Ctrl+H Replace All.",0x70);
+    text(5,18,"Scenes: numbers / lock / list. Sc: scene count; L: numbers locked.",0x70);
+    text(5,20,"Enter / Esc / F9: return to writing",0x70);screen_flush(-1,-1);{Key k;do{k=key_read(keyboard_layout,1);}while(k.code!=K_ENTER&&k.code!=K_ESC&&k.code!=K_F9);}
 }
 static int menu_shortcut(int ch){static const char keys[]="felimcpthx";const char *p=ch?strchr(keys,lower857(ch)):NULL;return p?(int)(p-keys):-1;}
 static void main_menu(int initial){
@@ -412,6 +428,9 @@ static int ui_selftest(void){
     key=(Key){K_F7,0,0,0,0};handle(key);assert(!overwrite);s.cur.o=1;
     key.code=K_F8;handle(key);key.code=K_RIGHT;handle(key);handle(key);assert(marking&&selection(&s,&a,&b)&&a.o==1&&b.o==3);
     key=(Key){K_CHAR,'X',0,0,0};handle(key);assert(!strcmp(s.d.p[0].text,"aXd")&&!marking);
+    assert(doc_insert(&s.d,1,ACTION,"Last paragraph"));rebuild();
+    handle((Key){K_END,0,0,1,0});assert(s.cur.p==1&&s.cur.o==14);
+    handle((Key){K_HOME,0,0,1,0});assert(s.cur.p==0&&s.cur.o==0);
     assert(menu_shortcut('l')==2&&menu_shortcut('h')==8&&menu_shortcut(0)==-1);
     reset_history();free(s.d.p[0].text);s.d.p[0].text=dupstr("McClane walks.");s.cur.o=0;
     key=(Key){K_TAB,0,0,0,0};for(i=0;i<12;i++)handle(key);
@@ -431,5 +450,5 @@ int main(int argc,char **argv){
     doc_init(&s.d);saved_hash=doc_hash(&s.d);cfg=file_open("MOVIEMST.CFG","r");if(!cfg)cfg=file_open("WRITER.CFG","r");if(cfg){int v;if(fscanf(cfg,"KEYBOARD %d",&v)==1){if(v>=0&&v<KEY_COUNT)keyboard_layout=v;}else{rewind(cfg);if(fscanf(cfg,"%d",&v)==1)keyboard_layout=v?KEY_TR_F:KEY_SYSTEM;}fclose(cfg);}rebuild();screen_init();
     cfg=file_open("KURTAR.SEN","rb");if(cfg){const char *m[]={"Open recovery file","Start new (archive previous recovery)"};int choice;fclose(cfg);choice=menu("Recovery from a previous session",m,2);if(choice==0){if(load_doc(&s.d,"KURTAR.SEN",err)){reset_history();saved_hash=doc_hash(&s.d)^1;strcpy(status,"Recovered. Press F10 to save with a new name.");}else{notice(err);running=0;}}else{int i,archived=0;for(i=1;i<1000;i++){char path[16];snprintf(path,sizeof(path),"ESKI%03d.SEN",i);cfg=file_open(path,"rb");if(cfg){fclose(cfg);continue;}if(!file_rename("KURTAR.SEN",path)){archived=1;snprintf(status,sizeof(status),"Previous recovery archived as %s.",path);}break;}if(!archived){notice("Cannot archive recovery. Exiting to preserve the file.");running=0;}}}
     last_recovery=time(NULL);while(running){Key k;draw();k=key_read(keyboard_layout,0);if(k.code)handle(k);else idle();now=time(NULL);if(dirty()&&now-last_recovery>=60){if(save_doc(&s.d,"KURTAR.SEN",err))strcpy(status,"Recovery saved. F10: save your document");else snprintf(status,sizeof(status),"Recovery: %.220s",err);last_recovery=now;}}
-    screen_done();state_free(&s);history_clear(&history);doc_free(&clipboard);layout_free(&layout);puts("Movie Master 0.4.4 - Happy writing.");return 0;
+    screen_done();state_free(&s);history_clear(&history);doc_free(&clipboard);layout_free(&layout);puts("Movie Master 0.4.5 - Happy writing.");return 0;
 }

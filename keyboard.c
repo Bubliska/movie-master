@@ -1,6 +1,16 @@
 #include "moviemst.h"
 #include <string.h>
 
+/* BIOS uses separate scan codes for Ctrl navigation, even after Ctrl is released. */
+int keyboard_control_scan(int scan){
+    switch(scan){
+        case 115:return 75;case 116:return 77;case 117:return 79;
+        case 118:return 81;case 119:return 71;case 132:return 73;
+        case 141:return 72;case 145:return 80;case 147:return 83;
+    }
+    return 0;
+}
+
 /* PC scan-code rows. US/UK/Dvorak and standard Latin national layouts.
    Reference: https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/tree/master/symbols
    Spaces in AltGr rows mean no third-level character. */

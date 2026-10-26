@@ -16,9 +16,6 @@ document.querySelectorAll('[data-copy-address]').forEach(button => {
     }
   });
 });
-document.querySelectorAll('.dialog-close, .dialog-dismiss').forEach(button => {
-  button.addEventListener('click', () => button.closest('dialog').close());
-});
 
 document.querySelector('#requirements-button').addEventListener('click', () => {
   document.querySelector('#requirements-dialog').showModal();

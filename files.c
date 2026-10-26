@@ -3,6 +3,9 @@
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
+#ifdef __DJGPP__
+#include <fcntl.h>
+#endif
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -112,8 +115,10 @@ int destination_path(char *out,const char *folder,const char *name,const char *e
            (base==4&&(!strncmp(device,"COM",3)||!strncmp(device,"LPT",3))&&device[3]>='1'&&device[3]<='9')){strcpy(error,"That name is reserved by DOS/Windows. Choose another name.");return 0;}
     }}
 #ifdef __DJGPP__
-    if(ext-filename>8||strlen(ext)>4){strcpy(error,"DOS names support at most 8 characters plus a 3-letter extension.");return 0;}
-    for(i=0;filename[i];i++){if(strchr(" +,;=[]",filename[i])||(filename[i]=='.'&&filename+i!=ext)){strcpy(error,"Use a short DOS file name without spaces or extra dots.");return 0;}filename[i]=(char)toupper((unsigned char)filename[i]);}
+    if(!_use_lfn(folder)){
+        if(ext-filename>8||strlen(ext)>4){strcpy(error,"This drive supports only DOS 8.3 names, for example SCRIPT.SEN.");return 0;}
+        for(i=0;filename[i];i++){if(strchr(" +,;=[]",filename[i])||(filename[i]=='.'&&filename+i!=ext)){strcpy(error,"Use a short DOS file name without spaces or extra dots.");return 0;}filename[i]=(char)toupper((unsigned char)filename[i]);}
+    }
 #endif
     if(path_type(folder)!=PATH_DIR){strcpy(error,"The destination folder does not exist or cannot be read.");return 0;}
     if(!path_join(out,folder,filename)){strcpy(error,"File path is too long.");return 0;}

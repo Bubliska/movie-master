@@ -63,7 +63,7 @@ info = {
     'CFBundleExecutable': 'MovieMaster', 'CFBundleIdentifier': 'app.moviemaster.mac',
     'CFBundleName': 'Movie Master', 'CFBundleDisplayName': 'Movie Master',
     'CFBundlePackageType': 'APPL', 'CFBundleInfoDictionaryVersion': '6.0',
-    'CFBundleShortVersionString': '0.4.4', 'CFBundleVersion': '4',
+    'CFBundleShortVersionString': '0.4.5', 'CFBundleVersion': '5',
     'CFBundleIconFile': 'MovieMaster.icns', 'LSMinimumSystemVersion': '15.0',
     'LSApplicationCategoryType': 'public.app-category.productivity',
     'NSHighResolutionCapable': True, 'NSPrincipalClass': 'NSApplication',
@@ -77,11 +77,13 @@ shutil.copy2(app/'Contents/Info.plist', resources/'Sources/Mac/Info.plist')
 (app/'Contents/PkgInfo').write_bytes(b'APPL????')
 os.symlink('/Applications', stage/'Applications')
 (stage/'READ ME.txt').write_text(
-    'Movie Master 0.4.4 — Apple Silicon, macOS 15 or later\n\n'
+    'Movie Master 0.4.5 — Apple Silicon, macOS 15 or later\n\n'
     'Drag Movie Master.app to Applications. DOSBox-X is included.\n'
     'The beta is ad-hoc signed and is not Apple-notarized.\n\n'
     'F9/Esc: menus. Alt+H: help. F10: Save. The first Save asks for a folder.\n'
-    'Save starts at Desktop. F5 Save Here asks for a file name.\n'
+    'Save starts at Desktop. Type a file name, then press Enter to save.\n'
+    'Tab switches between the file name and folders; arrows browse folders.\n'
+    'Long file names and spaces are supported by the bundled DOSBox-X runtime.\n'
     'Import Fountain opens the macOS file chooser, including Unicode names.\n'
     'Settings selects US, UK, Dvorak and national Latin keyboard layouts.\n'
     'Scenes > Lock Scene Numbers: preserve 11, 12; insert 11A, 11B between them.\n'
@@ -91,7 +93,7 @@ os.symlink('/Applications', stage/'Applications')
 subprocess.run(['codesign', '--force', '--deep', '--sign', '-', str(app)], check=True)
 subprocess.run(['codesign', '--verify', '--deep', '--strict', str(app)], check=True)
 (stage/'build-info.json').write_text(json.dumps({
-    'version': '0.4.4', 'architecture': 'arm64', 'minimum_macos': '15.0',
+    'version': '0.4.5', 'architecture': 'arm64', 'minimum_macos': '15.0',
     'dosbox_version': '2026.10.01', 'dosbox_commit': 'b6abbd5',
     'dos_sha256': hashlib.sha256((resources/'DOS/MOVIEMST.EXE').read_bytes()).hexdigest(),
     'dosbox_sha256': hashlib.sha256((app/'Contents/MacOS/dosbox-x').read_bytes()).hexdigest(),

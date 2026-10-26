@@ -9,10 +9,13 @@ This repository contains the application source and its English landing page.
 
 | Platform | Download |
 | --- | --- |
-| Mac · Apple Silicon | [Movie Master v0.4.4 · DMG](https://github.com/Bubliska/movie-master/releases/download/v0.4.4/Movie-Master-0.4.4-AppleSilicon.dmg) |
-| DOS & Windows · 32/64-bit | [Movie Master v0.4.4 · ZIP](https://github.com/Bubliska/movie-master/releases/download/v0.4.4/Movie-Master-0.4.4-DOS-Windows.zip) |
+| Mac · Apple Silicon | [Download DMG](https://www.moviemaster.app/api/download?platform=mac) |
+| DOS & Windows · 32/64-bit | [Download ZIP](https://www.moviemaster.app/api/download?platform=windows) |
 
 Mac requires macOS 15 or later. This beta is not Apple-notarized; see the [Mac installation instructions](https://www.moviemaster.app/credits.html#mac-install). Extract the entire DOS/Windows ZIP before running the app.
+
+Save, Save As and exports accept editable names, including long filenames on
+LFN-capable drives. Mac uses the M app icon and native Fountain file chooser.
 
 ## Writing
 
@@ -25,7 +28,10 @@ The scene list opens from the menu rather than occupying the writing screen.
 - Tab cycles elements or completes a repeated cue. Ctrl+Enter adds an element.
 - F9/Esc opens menus. F10/Ctrl+S saves. Alt+H opens help.
 - First Save, Save As and every export open the in-app folder browser.
-  It starts at Desktop. Enter opens folders; F5 saves here; F3 accepts a path.
+  It starts at Desktop. Type a file name, then press Enter (or F5) to save.
+  Tab switches between the name and files; Up/Down browse; Enter opens folders.
+  F3 accepts a path. Long names and spaces work on drives with LFN support,
+  including the bundled Mac DOSBox-X runtime; plain DOS drives use 8.3 names.
 - Mac Fountain import uses the native macOS file chooser, starting at Desktop.
   It supports Unicode filenames, including decomposed Turkish names hidden by
   DOSBox. A private temporary copy is read; the original is unchanged. DOS and
@@ -33,7 +39,7 @@ The scene list opens from the menu rather than occupying the writing screen.
 - Windows: extract the portable ZIP and run START.BAT. DOS: run MOVIEMST.EXE with
   CWSDPMI.EXE and FONT.TTF alongside it. Mac: drag Movie Master.app to Applications.
 
-## Keyboard layouts — v0.4.4
+## Keyboard layouts
 
 Settings selects System, US, UK, Dvorak, Turkish Q/F, Spanish, French AZERTY,
 German QWERTZ, Italian, Portuguese or Brazilian Portuguese. The selection is
@@ -43,7 +49,7 @@ Turkish layouts preserve İ/i and I/ı. Existing 0/1 keyboard settings migrate.
 The current 8-bit text set supports Latin text; Cyrillic, Arabic, CJK and
 some symbols such as the euro sign are not supported in this release.
 
-## Scene numbers — v0.4.3
+## Scene numbers
 
 The status bar shows the scene count as `Sc:`. `L` means numbering is locked.
 Use **Scenes → Show Scene Numbers** to number headings and PDF/TXT/Fountain
@@ -106,7 +112,7 @@ executable is MOVIEMST.EXE to fit DOS 8.3 filenames.
 
 ## Website and deployment
 
-The buildless landing page uses index.html, credits.html, style.css, app.js,
+The buildless landing page uses index.html, credits.html, style.css, app.js, feedback.js,
 mark.svg, movie-master-dune.png, robots.txt and sitemap.xml. Serve the root
 with any static HTTP server.
 The image is an unretouched screenshot of the running v0.4.2 DOS app, containing
@@ -117,12 +123,38 @@ addresses for Ethereum (ERC20) and TRON (TRC20). Payments happen outside the sit
 crypto addresses can be copied without connecting a wallet.
 
 Import this repository in Vercel with the Other framework preset and root `.`.
-vercel.json copies only the eight public site files into public/. No dependencies
+vercel.json copies only the public site files into public/. No dependencies
 are installed. App downloads link to GitHub release assets, so the website does
-not reconstruct large binaries in the browser. Update both download links and
-version text together when publishing a new release. A push updates the site.
+not reconstruct large binaries in the browser. The download endpoint selects the
+Mac, DOS/Windows and checksum assets from GitHub's latest published release;
+visible website text contains no app release number. A push updates the site.
 Canonical URLs use https://www.moviemaster.app/. Keep the Google and Bing
 verification meta tags in index.html to retain webmaster verification.
+
+### Visitor feedback
+
+`api/feedback.mjs` is a Vercel Node function using the Upstash Redis REST API.
+It needs no npm packages. Connect a free Upstash Redis database to this Vercel
+project, then configure `FEEDBACK_KV_REST_API_URL`, `FEEDBACK_KV_REST_API_TOKEN` and
+`FEEDBACK_ADMIN_PASSWORD` as server environment variables before deploying.
+Use a long, private creator password. Do not put any of these values in HTML,
+JavaScript, Git or a public screenshot. `.env.example` lists placeholders only.
+
+Visitors leave a name, private email and message. Messages wait for approval;
+the public list shows the latest 50 approved messages and creator replies.
+Choose **Creator sign in** below the messages to publish, reply or delete.
+Replying also publishes the message. Emails are returned only to authenticated
+creator requests. There are no email notifications. Closing the creator dialog
+clears its password and private message list from the page.
+
+The endpoint enforces message limits, same-origin submissions, a honeypot and
+one submission per IP per minute. Redis stores hashed rate-limit keys for one
+minute, rather than raw IPs. The creator can permanently delete a message and
+its stored email. Storage errors never produce a false submission success.
+
+Run API contract tests with `node --test web_test.mjs`. They use an isolated
+Redis fixture; validate the deployed site against the connected database too.
+The two HTML pages remain static. Vercel serves the functions from `api/`.
 
 ## License and limitations
 

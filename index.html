@@ -31,7 +31,7 @@
   </script>
   <link rel="icon" href="mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
-  <script src="app.js" defer></script>
+  <script src="app.js" defer></script><script src="feedback.js" defer></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -45,7 +45,7 @@
         <p class="eyebrow">FREE, OPEN-SOURCE SCREENWRITING SOFTWARE.</p>
         <h1 id="hero-title">Write your<br>Forrest Gump.</h1>
         <p class="hero-subtitle">Inspired by Eric Roth’s writing ritual.<br>Yours, for free.</p>
-        <div class="download-actions" id="downloads"><a class="button primary" id="download-mac" href="https://github.com/Bubliska/movie-master/releases/download/v0.4.4/Movie-Master-0.4.4-AppleSilicon.dmg">Download for Mac <span aria-hidden="true">↓</span></a><a class="secondary" href="https://github.com/Bubliska/movie-master/releases/download/v0.4.4/Movie-Master-0.4.4-DOS-Windows.zip" download>DOS & Windows <span aria-hidden="true">↗</span></a></div>
+        <div class="download-actions" id="downloads"><a class="button primary" id="download-mac" href="/api/download?platform=mac">Download for Mac <span aria-hidden="true">↓</span></a><a class="secondary" href="/api/download?platform=windows" download>DOS & Windows <span aria-hidden="true">↗</span></a></div>
         <p class="compatibility">Free. Offline. Yours.</p>
         <p class="download-status">Apple Silicon · macOS 15 or later</p>
         <p class="download-status">Not Apple-notarized. <a href="credits.html#mac-install">Mac installation help ↗</a></p>
@@ -60,11 +60,27 @@
       <a class="roth-image" href="https://www.youtube.com/watch?v=N3_QmiNs52o" target="_blank" rel="noopener noreferrer" aria-label="Watch Eric Roth's writing process on Academy Originals"><img src="https://i.ytimg.com/vi/N3_QmiNs52o/maxresdefault.jpg" width="1280" height="720" alt="Eric Roth at his writing desk, from Academy Originals" loading="lazy" referrerpolicy="no-referrer"><span aria-hidden="true">↗</span></a>
       <div class="idea-copy"><p class="eyebrow">A FAMILIAR IDEA.</p><h2 id="idea-title">Great stories.<br>Simple tools.</h2><p>In a 2020 conversation, Eric Roth described writing in an old DOS copy of Movie Master. One computer, devoted to the work. That kind of focus is the idea behind this independent app.</p><a class="story-link" href="https://johnaugust.com/2020/scriptnotes-475-the-one-with-eric-roth-transcript" target="_blank" rel="noopener noreferrer">Read the conversation <span aria-hidden="true">↗</span></a></div>
     </section>
+    <section class="feedback shell" id="feedback" aria-labelledby="feedback-title">
+      <div class="feedback-intro"><p class="eyebrow">LET’S MAKE IT BETTER.</p><h2 id="feedback-title">Leave a note.</h2><p>A question, an idea, or something that could work better. I’m listening.</p></div>
+      <div class="feedback-body">
+        <form id="feedback-form" class="feedback-form" aria-describedby="feedback-privacy feedback-status">
+          <div class="feedback-fields"><label>Name<input name="name" autocomplete="name" required maxlength="60"></label><label>Email<input name="email" type="email" autocomplete="email" required maxlength="254"></label></div>
+          <label>Your comment, question or idea<textarea name="message" required minlength="5" maxlength="3000" rows="5"></textarea></label>
+          <div class="feedback-trap" aria-hidden="true"><label>Leave this empty<input name="website" tabindex="-1" autocomplete="off"></label></div>
+          <p id="feedback-privacy" class="feedback-note">Your name and message are public after review. Your email stays private and is visible only to the creator. Replies appear here; email notifications are not sent.</p>
+          <button class="button primary" type="submit" disabled>Leave a message <span aria-hidden="true">↗</span></button>
+        </form>
+        <p id="feedback-status" class="feedback-note" role="status" aria-live="polite">Loading messages…</p>
+        <ol id="feedback-list" class="feedback-list" aria-label="Visitor messages"></ol>
+        <button class="footer-link creator-button" id="creator-button" type="button">Creator sign in</button>
+        <noscript><p>Enable JavaScript to leave a message and read replies.</p></noscript>
+      </div>
+    </section>
     <section class="support shell" aria-labelledby="support-title"><div><p class="eyebrow">FREE FOR EVERYONE.</p><h2 id="support-title">A little support.<br>A lot of possibility.</h2></div><div class="support-action"><p>Always optional.<br>Free for everyone.</p></div></section>
   </main>
-  <footer class="footer shell"><span>© 2026 Movie Master</span><div><button class="footer-link" type="button" id="requirements-button">Compatibility</button><a href="credits.html">Credits & notes</a><a href="https://github.com/Bubliska/movie-master/releases/download/v0.4.4/SHA256.txt" target="_blank" rel="noopener">Verify downloads <span aria-hidden="true">↗</span></a></div><span>Made for the page.</span></footer>
+  <footer class="footer shell"><span>© 2026 Movie Master</span><div><button class="footer-link" type="button" id="requirements-button">Compatibility</button><a href="credits.html">Credits & notes</a><a href="/api/download?platform=checksums" target="_blank" rel="noopener">Verify downloads <span aria-hidden="true">↗</span></a></div><span>Made for the page.</span></footer>
   <dialog id="donation-dialog" aria-labelledby="donation-title">
-    <button class="dialog-close" aria-label="Close donation information" type="button">×</button>
+    <form method="dialog"><button class="dialog-close" aria-label="Close donation information" type="submit">×</button></form>
     <p class="eyebrow">THANK YOU.</p><h2 id="donation-title">Keep the<br>story going.</h2>
     <p>Movie Master is free. Every contribution helps write its next chapter.</p>
     <section class="donation-method" aria-labelledby="paypal-title"><h3 id="paypal-title">PayPal</h3><a class="button primary" href="https://paypal.me/emirBublis" target="_blank" rel="noopener noreferrer">Continue with PayPal <span aria-hidden="true">↗</span></a><p class="dialog-small">Choose your amount on PayPal.</p></section>
@@ -84,7 +100,14 @@
     </section>
     <p class="dialog-small">Always optional. The app is yours either way.</p>
   </dialog>
-  <dialog id="requirements-dialog" aria-labelledby="requirements-title"><button class="dialog-close" aria-label="Close compatibility information" type="button">×</button><p class="eyebrow">COMPATIBILITY</p><h2 id="requirements-title">A few details.</h2><h3>Mac</h3><p>Apple Silicon, macOS 15 or later. DOSBox-X is included. Open the DMG and drag the app to Applications. This beta is ad-hoc signed and isn't Apple-notarized, so macOS may block its first launch. <a href="credits.html#mac-install">Read the Mac installation instructions</a>. No Intel Mac build is included.</p><h3>Keyboard layouts</h3><p>US, UK, Dvorak, Turkish Q/F, Spanish, French AZERTY, German QWERTZ, Italian, Portuguese and Brazilian Portuguese. Choose a layout in Settings. The current text set supports Latin scripts; Cyrillic, Arabic and CJK text are not yet supported.</p><h3>DOS & Windows</h3><p>The ZIP includes DOS, WIN32 and WIN64 builds. Windows 10–11: extract the entire ZIP and run START.BAT. DOS: 386+, VGA and extended memory; 32 MB recommended. Keep FONT.TTF and CWSDPMI.EXE beside MOVIEMST.EXE. Windows builds are compiled but haven't been tested on a live Windows machine.</p><p class="dialog-small">Mac: File → Import Fountain opens the macOS file chooser at Desktop, including Unicode filenames.</p><p class="dialog-small">First Save: F10 → choose a folder → F5 Save Here → enter a name. Save As and every export let you choose a location again.</p><button class="button primary dialog-dismiss" type="button">Got it</button></dialog>
+  <dialog id="requirements-dialog" aria-labelledby="requirements-title"><form method="dialog"><button class="dialog-close" aria-label="Close compatibility information" type="submit">×</button></form><p class="eyebrow">COMPATIBILITY</p><h2 id="requirements-title">A few details.</h2><h3>Mac</h3><p>Apple Silicon, macOS 15 or later. DOSBox-X is included. Open the DMG and drag the app to Applications. This beta is ad-hoc signed and isn't Apple-notarized, so macOS may block its first launch. <a href="credits.html#mac-install">Read the Mac installation instructions</a>. No Intel Mac build is included.</p><h3>Keyboard layouts</h3><p>US, UK, Dvorak, Turkish Q/F, Spanish, French AZERTY, German QWERTZ, Italian, Portuguese and Brazilian Portuguese. Choose a layout in Settings. The current text set supports Latin scripts; Cyrillic, Arabic and CJK text are not yet supported.</p><h3>DOS & Windows</h3><p>The ZIP includes DOS, WIN32 and WIN64 builds. Windows 10–11: extract the entire ZIP and run START.BAT. DOS: 386+, VGA and extended memory; 32 MB recommended. Keep FONT.TTF and CWSDPMI.EXE beside MOVIEMST.EXE. Windows builds are compiled but haven't been tested on a live Windows machine.</p><p class="dialog-small">Mac: File → Import Fountain opens the macOS file chooser at Desktop, including Unicode filenames.</p><p class="dialog-small">First Save: F10 → choose a folder → type a name → Enter. Save As and every export let you choose a location again.</p><form method="dialog"><button class="button primary dialog-dismiss" type="submit">Got it</button></form></dialog>
+  <dialog id="creator-dialog" aria-labelledby="creator-title">
+    <form method="dialog"><button class="dialog-close" aria-label="Close creator messages" type="submit">×</button></form>
+    <p class="eyebrow">FOR THE CREATOR.</p><h2 id="creator-title">Your inbox.</h2>
+    <form id="creator-login" class="feedback-form"><label>Creator password<input id="creator-password" type="password" autocomplete="current-password" required></label><button class="button primary" type="submit">Sign in</button></form>
+    <p id="creator-status" class="feedback-note" role="status" aria-live="polite"></p>
+    <ol id="creator-list" class="feedback-list" aria-label="Messages to manage"></ol>
+  </dialog>
   <noscript><p class="noscript shell">Both downloads work without JavaScript. Enable it to open the information dialogs.</p></noscript>
 </body>
 </html>

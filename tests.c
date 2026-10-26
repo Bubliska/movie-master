@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#ifdef __DJGPP__
+#include <fcntl.h>
+#endif
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -73,7 +76,8 @@ static void destination_tests(void){
     assert(!destination_path(path,"./NO-SUCH-DIR-ABC","FILM",".SEN",error));
     assert(file_matches("FILM.SEN",3)&&!file_matches("FILM.BAK",3)&&file_matches("OUT.pdf",4)&&file_matches("OUT.TXT",5)&&file_matches("OUT.FTN",6));
 #ifdef __DJGPP__
-    assert(!destination_path(path,".","TOO-LONG-NAME",".SEN",error));assert(!destination_path(path,".","BAD NAME",".SEN",error));
+    if(_use_lfn(".")){assert(destination_path(path,".","My Feature Film",".SEN",error)&&!strcmp(path,"./My Feature Film.SEN"));}
+    else{assert(!destination_path(path,".","TOO-LONG-NAME",".SEN",error));assert(!destination_path(path,".","BAD NAME",".SEN",error));}
 #else
     assert(destination_path(path,".","Türkçe Dosya",".SEN",error)&&!strcmp(path,"./Türkçe Dosya.SEN"));
 #endif
@@ -134,6 +138,11 @@ static void fountain_tests(void){
 }
 static int mapped(int layout,int scan,int shift,int caps,int altgr,int compose){keyboard_layout=layout;return keyboard_key(layout,scan,shift,caps,altgr,compose);}
 static void keyboard_tests(void){
+    assert(keyboard_control_scan(119)==71&&keyboard_control_scan(117)==79);
+    assert(keyboard_control_scan(115)==75&&keyboard_control_scan(116)==77);
+    assert(keyboard_control_scan(132)==73&&keyboard_control_scan(118)==81);
+    assert(keyboard_control_scan(141)==72&&keyboard_control_scan(145)==80&&keyboard_control_scan(147)==83);
+    assert(!keyboard_control_scan(71)&&!keyboard_control_scan(30));
     keyboard_reset();
     assert(mapped(KEY_US,16,0,0,0,1)=='q'&&mapped(KEY_US,23,1,0,0,1)=='I');
     assert(mapped(KEY_US,23,0,1,0,1)=='I'&&mapped(KEY_US,23,1,1,0,1)=='i');

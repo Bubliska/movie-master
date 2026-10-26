@@ -136,10 +136,10 @@ int main(int argc, const char *argv[]) {
             return fail(@"Movie Master cannot use folder paths containing quotation marks or line breaks.", nil);
         NSString *config = [NSString stringWithFormat:
             @"[sdl]\nfullscreen=true\nfullresolution=desktop\nwindowresolution=original\n"
-             "output=openglnb\nautolock=false\ntitlebar=Movie Master\nnocachedir=true\nmapperfile_sdl2=%@\n"
+             "output=openglnb\nautolock=false\ntitlebar=Movie Master\nmapperfile_sdl2=%@\n"
              "[render]\naspect=false\nscaler=none\nglshader=none\n"
              "[dos]\nlfn=true\nkeyboardlayout=none\n"
-             "[dosbox]\nmemsize=32\n[cpu]\ncycles=25000\n"
+             "[dosbox]\nmemsize=32\nnocachedir=true\n[cpu]\ncycles=25000\n"
              "[autoexec]\n@echo off\nchcp 857\nmount c \"%@\"\nmount d \"%@\"\nmount e \"%@\"\nmount f \"/Volumes\"\nmount r \"%@\"\nmount x \"%@\"\n"
              "set PATH=R:\\;Z:\\\nset MMFONT=R:\\FONT.TTF\nset MMMAC=X:/\nc:\nR:\\MOVIEMST.EXE\nexit\n",
              mapper, dataFolder, desktop.path, NSHomeDirectory(), runtimeFolder, bridge];
